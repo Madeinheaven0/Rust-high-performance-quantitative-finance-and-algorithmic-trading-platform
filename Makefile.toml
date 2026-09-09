@@ -1,0 +1,45 @@
+[config]
+workspace = true
+
+[task.test]
+description = "Launch test in all the creates workspace"
+command = "cargo"
+args = ["nextest", "run", "--workspace"]
+
+[task.doc]
+description = "Generate doc and doctest for all the workspace"
+command = "cargo"
+args = ["test", "--doc", "--workspace"]
+
+[task.clippy]
+description = "Check clippy"
+command = "cargo"
+args = ["clippy", "--workspace", "--all-targets","--", "-D", "warnings"]
+
+[task.fmt]
+description = "Inspect and fixt the format"
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.coverage]
+description = "Compute the code's coverage in te shell (use nextest)"
+command = "cargo"
+args = ["llvm-cov", "--nextest", "--workspace"]
+
+[tasks.coverage-html]
+description = "Generate the interactif HTLM report of the code's coverage and opn it"
+command = "cargo"
+args = ["llvm-cov", "--nextest", "--workspace", "--open"]
+
+[tasks.coverage-clean]
+description = "Clean the profile files of the generated coverages"
+command = "cargo"
+args = ["llvm-cov", "clean", "--workspace"]
+
+[task.check-all]
+description = "Check format, clippy, nextext and the doc"
+dependencies = ["fmt", "clippy", "coverage", "doc"]
+
+
+
+
