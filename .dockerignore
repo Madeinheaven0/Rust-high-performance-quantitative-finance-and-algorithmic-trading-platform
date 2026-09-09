@@ -1,0 +1,30 @@
+# Compilation et artefacts Rust
+/target/
+**/*.rs.bk
+
+# Git et CI/CD
+.git
+.gitignore
+.github
+
+# Secrets et variables d'environnement
+.env
+.env.*
+*.log
+
+# Docker et Orchestration
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Fichiers IDE et OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Documentation et divers
+README.md
+docs/
+*.md

@@ -1,0 +1,23 @@
+# Artefacts de compilation et dépendances téléchargées par Cargo
+/target/
+
+# Fichiers de verrouillage temporaires
+**/*.rs.bk
+*.imm.rs
+
+# Fichiers de configuration et variables d'environnement (Mots de passe, clés API)
+.env
+.env.local
+
+# Profils et caches d'outils de couverture de code / profiling
+*.profraw
+*.profdata
+
+# Éditeurs de code et IDE
+.vscode/
+.idea/
+*.swp
+
+# Fichiers système
+.DS_Store
+Thumbs.db
