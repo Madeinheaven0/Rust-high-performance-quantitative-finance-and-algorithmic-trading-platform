@@ -4,7 +4,7 @@
 /// The type of the European option ( Call or Put)
 pub enum EuropeanOption {
     Call,
-    Put
+    Put,
 }
 
 /// Represents the basic option's type used for strategies as known Call and Put European
@@ -37,18 +37,20 @@ impl BasicOption {
     /// # Errors
     ///
     /// Returns an error if `spot_price` or `strike_price` is negative or zero.
-    pub fn new<'a>(spot_price: f64, strike_price: f64, category: EuropeanOption) -> Result<Self, &'a str> {
+    pub fn new(
+        spot_price: f64,
+        strike_price: f64,
+        category: EuropeanOption,
+    ) -> Result<Self, &'static str> {
         if spot_price <= 0.0 || strike_price <= 0.0 {
             return Err("The spot_price or strike_price must be positive.");
         }
 
-        Ok(
-            Self {
-                spot_price,
-                strike_price,
-                category
-            }
-        )
+        Ok(Self {
+            spot_price,
+            strike_price,
+            category,
+        })
     }
 
     /// Computes the option's payoff at expiration.
@@ -57,5 +59,44 @@ impl BasicOption {
             EuropeanOption::Call => (self.spot_price - self.strike_price).max(0.),
             EuropeanOption::Put => (self.strike_price - self.spot_price).max(0.),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_option() {
+        let spot_price = 100.;
+        let strike_price = 10.;
+        let category = EuropeanOption::Call;
+
+        let basic_option = BasicOption::new(spot_price, strike_price, category).unwrap();
+        assert_eq!(basic_option.spot_price, spot_price);
+        assert_eq!(basic_option.strike_price, strike_price);
+    }
+
+    #[test]
+    #[should_panic(expected = "The spot_price or strike_price must be positive.")]
+    fn test_create_option_invalid_spot_price() {
+        let spot_price = -100.;
+        let strike_price = 10.;
+        let category = EuropeanOption::Call;
+
+        let _basic_option = BasicOption::new(spot_price, strike_price, category).unwrap();
+    }
+
+    #[test]
+    fn test_payoff() {
+        let spot_price = 100.;
+        let strike_price = 10.;
+        let category = EuropeanOption::Call;
+
+        let basic_option = BasicOption::new(spot_price, strike_price, category).unwrap();
+
+        let payoff = basic_option.payoff();
+
+        assert_eq!(payoff, 90.);
     }
 }

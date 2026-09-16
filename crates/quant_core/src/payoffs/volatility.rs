@@ -1,0 +1,323 @@
+//! # Advanced strategies for volatility
+//!All the structuration and computation for the payoff of advanced strategies used to take profit of the volatility (long and short straddle)
+
+/// Categories of straddle and strangle
+#[derive(Clone, PartialEq, Debug)]
+pub enum Category {
+    Long,
+    Short,
+}
+
+///The structure of a straddle
+///
+///Implements the method who compute the payoff of the strategies whether is a Long or Short straddle
+///
+/// ## Examples
+///
+/// ```rust
+/// use quant_core::payoffs::volatiliy::{Category  , Straddle};
+///
+/// fn main() -> Resul<(), &'static str> {
+/// let longstraddle = Straddle::build(50.0, 30.0, Category::Long};
+///
+/// assert_eq!(bullcallspread.payoff(), 20);
+///
+/// Ok(())
+/// }
+/// ```
+pub struct Straddle {
+    pub category: Category,
+    pub spot_price: f64,
+    pub strike_price: f64,
+}
+
+///The structure of Strangle
+///
+///Implements the method who compute the payoff of the strategies whether is a Long or Short strangle
+///
+/// ## Examples
+///
+/// ```rust
+/// use quant_core::payoffs::volatiliy::{Category  , Strangle};
+///
+/// fn main() -> Resul<(), &'static str> {
+/// let longstraddle = Strangle::build(100.0, 50.0, 90.0, Category::Long};
+///
+/// assert_eq!(bullcallspread.payoff(), 10);
+///
+/// Ok(())
+/// }
+/// ```
+pub struct Strangle {
+    pub category: Category,
+    pub spot_price: f64,
+    pub strike_price1: f64,
+    pub strike_price2: f64,
+}
+
+impl Straddle {
+    /// Create a new `Straddle`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `spot_price` or `strike_price`  is negative or zero
+    pub fn build(
+        spot_price: f64,
+        strike_price: f64,
+        category: Category,
+    ) -> Result<Self, &'static str> {
+        if spot_price <= 0.0 || strike_price <= 0.0 {
+            return Err("Spot price and strike_price must be positive");
+        }
+
+        Ok(Self {
+            spot_price,
+            strike_price,
+            category,
+        })
+    }
+
+    /// Computes the option's payoff at expiration.
+    pub fn payoff(&self) -> f64 {
+        match self.category {
+            Category::Long => {
+                let first_payoff = (self.spot_price - self.strike_price).max(0.);
+                let second_payoff = (self.strike_price - self.spot_price).max(0.);
+
+                first_payoff + second_payoff
+            }
+            Category::Short => {
+                let first_payoff = -(self.spot_price - self.strike_price).max(0.);
+                let second_payoff = -(self.strike_price - self.spot_price).max(0.);
+
+                first_payoff + second_payoff
+            }
+        }
+    }
+}
+
+impl Strangle {
+    /// Create a new `Strangle`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `spot_price`, `strike_price1` or `strike_price2`  is negative or zero
+    /// or `strike_price1` greater or equal to `strike_price2`
+    pub fn build(spot_price: f64, strike_price1: f64, strike_price2: f64, category: Category) -> Result<Self, &'static str> {
+        if spot_price <= 0.0 || strike_price1 <= 0.0 || strike_price2 <= 0.0 {
+            return Err("Spot price and strike_prices must be positive")
+        }
+
+        if strike_price1 >= strike_price2 {
+            return Err("Strike_price2 must be greater than strike_price1");
+        }
+
+        Ok(
+            Self{
+                spot_price,
+                strike_price1,
+                strike_price2,
+                category,
+            }
+        )
+    }
+
+    /// Computes the option's payoff at expiration.
+    pub fn payoff(&self) -> f64 {
+        match self.category {
+            Category::Long => {
+                let first_payoff = (self.spot_price - self.strike_price2).max(0.);
+                let second_payoff = (self.strike_price1 - self.spot_price).max(0.);
+
+                first_payoff + second_payoff
+            },
+            Category::Short => {
+                let first_payoff = -(self.spot_price - self.strike_price2).max(0.);
+                let second_payoff = -(self.strike_price1 - self.spot_price).max(0.);
+
+                first_payoff + second_payoff
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_long_straddle() {
+        let spot_price = 100.0;
+        let strike_price = 100.0;
+        let category = Category::Long;
+
+        let long_straddle = Straddle::build(spot_price, strike_price, category).unwrap();
+
+        assert_eq!(long_straddle.category, Category::Long);
+        assert_eq!(long_straddle.spot_price, spot_price);
+        assert_eq!(long_straddle.strike_price, strike_price);
+    }
+
+    #[test]
+    fn test_build_short_straddle() {
+        let spot_price = 100.0;
+        let strike_price = 100.0;
+        let category = Category::Short;
+
+        let short_straddle = Straddle::build(spot_price, strike_price, category).unwrap();
+
+        assert_eq!(short_straddle.category, Category::Short);
+        assert_eq!(short_straddle.spot_price, 100.0);
+        assert_eq!(short_straddle.strike_price, 100.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "Spot price and strike_price must be positive")]
+    fn test_straddle_invalid_price() {
+        let spot_price = 100.0;
+        let strike_price = -100.0;
+        let category = Category::Long;
+
+        let _long_straddle = Straddle::build(spot_price, strike_price, category).unwrap();
+    }
+
+    #[test]
+    fn test_long_straddle_payoff() {
+        let spot_price = 100.0;
+        let strike_price = 90.0;
+        let category = Category::Long;
+
+        let straddle = Straddle::build(
+            spot_price,
+            strike_price,
+            category,
+        ).unwrap();
+
+        let payoff = straddle.payoff();
+
+        assert_eq!(payoff, 10.0);
+    }
+
+    #[test]
+    fn test_short_straddle_payoff() {
+        let spot_price = 100.0;
+        let strike_price = 90.0;
+        let category = Category::Short;
+
+        let short_straddle = Straddle::build(
+            spot_price,
+            strike_price,
+            category,
+        ).unwrap();
+
+        let payoff = short_straddle.payoff();
+        assert_eq!(payoff, -10.0);
+    }
+
+    #[test]
+    fn test_build_long_strangle() {
+        let spot_price = 100.0;
+        let strike_price1 = 80.0;
+        let strike_price2 = 100.0;
+
+        let category = Category::Long;
+
+        let long_strangle = Strangle::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            category,
+        ).unwrap();
+
+        assert_eq!(long_strangle.category, Category::Long);
+        assert_eq!(long_strangle.spot_price, 100.0);
+        assert_eq!(long_strangle.strike_price1, 80.0);
+        assert_eq!(long_strangle.strike_price2, 100.0);
+    }
+
+    #[test]
+    fn test_build_short_strangle() {
+        let spot_price = 100.0;
+        let strike_price1 = 80.0;
+        let strike_price2 = 100.0;
+        let category = Category::Short;
+
+        let long_strangle = Strangle::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            category,
+        ).unwrap();
+
+        assert_eq!(long_strangle.category, Category::Short);
+        assert_eq!(long_strangle.spot_price, 100.0);
+        assert_eq!(long_strangle.strike_price1, 80.0);
+        assert_eq!(long_strangle.strike_price2, 100.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "Spot price and strike_prices must be positive")]
+    fn test_build_straddle_invalid_price() {
+        let spot_price = -100.0;
+        let strike_price1 = 80.0;
+        let strike_price2 = 100.0;
+        let category = Category::Long;
+
+        let _long_strangle = Strangle::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            category,
+        ).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Strike_price2 must be greater than strike_price1")]
+    fn test_build_straddle_invalid_strike() {
+        let spot_price = 100.0;
+        let strike_price1 = 180.0;
+        let strike_price2 =90.0;
+        let category = Category::Long;
+
+        let _long_strangle = Strangle::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            category,
+        ).unwrap();
+    }
+
+    #[test]
+    fn test_long_strangle_payoff() {
+        let spot_price = 100.0;
+        let strike_price1 = 75.0;
+        let strike_price2 = 90.0;
+        let category = Category::Long;
+
+        let long_strangle = Strangle::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            category,
+        ).unwrap();
+
+        assert_eq!(long_strangle.payoff(), 10.0);
+    }
+
+    #[test]
+    fn test_short_strangle_payoff() {
+        let spot_price = 100.0;
+        let strike_price1 = 80.0;
+        let strike_price2 = 90.0;
+        let category = Category::Short;
+
+        let short_strangle = Strangle::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            category,
+        ).unwrap();
+
+        assert_eq!(short_strangle.payoff(), -10.0);
+    }
+}
