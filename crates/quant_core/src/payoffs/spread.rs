@@ -1,14 +1,11 @@
 //! # The advanced options strategies for Bullish and Bearish market
 //! All the structuration and computation for the payoff of advanced strategies used for Bearish or Bullish market(Bull and BearSpread)
 
+use super::categorical_options::CallPutCategory;
+use super::errors::PriceError;
+use crate::payoffs::range_bound::LongButterflySpreadCategory::Call;
+
 /// The two categories of bull spread
-#[derive(Clone, PartialEq, Debug)]
-pub enum SpreadCategory {
-    Call,
-    Put,
-    //IronCondor,
-    //IronButterfly
-}
 
 /// The structure of a bull spread
 ///
@@ -31,7 +28,7 @@ pub struct BullSpread {
     pub spot_price: f64,
     pub strike_price1: f64,
     pub strike_price2: f64,
-    pub category: SpreadCategory,
+    pub category: CallPutCategory,
 }
 
 /// The structure of a bear spread
@@ -54,7 +51,7 @@ pub struct BearSpread {
     pub spot_price: f64,
     pub strike_price1: f64,
     pub strike_price2: f64,
-    pub category: SpreadCategory,
+    pub category: CallPutCategory,
 }
 
 impl BullSpread {
@@ -69,16 +66,21 @@ impl BullSpread {
         spot_price: f64,
         strike_price1: f64,
         strike_price2: f64,
-        category: SpreadCategory,
-    ) -> Result<Self, &'static str> {
-        if spot_price <= 0.0 || strike_price1 <= 0.0 || strike_price2 <= 0.0 {
-            return Err("Spot prices and strike prices must be positive numbers");
+        category: CallPutCategory,
+    ) -> Result<Self, PriceError> {
+        if spot_price <= 0.0 {
+            return Err(PriceError::SpotPriceNegative(spot_price));
+        }
+
+        if strike_price1 <= 0.0 || strike_price2 <= 0.0 {
+            return Err(PriceError::StrikePriceNegative);
         }
 
         if strike_price1 >= strike_price2 {
-            return Err(
-                "The strike price of the long leg (K1) must be strictly lower than the short leg (K2)",
-            );
+            return Err(PriceError::StrikeConfigurationError(
+                strike_price1,
+                strike_price2,
+            ));
         }
 
         Ok(Self {
@@ -92,12 +94,12 @@ impl BullSpread {
     /// Computes the option's payoff at expiration.
     pub fn payoff(&self) -> f64 {
         match self.category {
-            SpreadCategory::Call => {
+            CallPutCategory::Call => {
                 let first_payoff = (self.spot_price - self.strike_price1).max(0.);
                 let second_payoff = (self.spot_price - self.strike_price2).max(0.);
                 first_payoff - second_payoff
             }
-            SpreadCategory::Put => {
+            CallPutCategory::Put => {
                 let first_payoff = (self.strike_price1 - self.spot_price).max(0.);
                 let second_payoff = (self.strike_price2 - self.spot_price).max(0.);
                 first_payoff - second_payoff
@@ -118,16 +120,21 @@ impl BearSpread {
         spot_price: f64,
         strike_price1: f64,
         strike_price2: f64,
-        category: SpreadCategory,
-    ) -> Result<Self, &'static str> {
-        if spot_price <= 0.0 || strike_price1 <= 0.0 || strike_price2 <= 0.0 {
-            return Err("Spot prices and strike prices must be positive numbers");
+        category: CallPutCategory,
+    ) -> Result<Self, PriceError> {
+        if spot_price <= 0.0 {
+            return Err(PriceError::SpotPriceNegative(spot_price));
+        }
+
+        if strike_price1 <= 0.0 || strike_price2 <= 0.0 {
+            return Err(PriceError::StrikePriceNegative);
         }
 
         if strike_price1 >= strike_price2 {
-            return Err(
-                "The strike price of the long leg (K1) must be strictly lower than the short leg (K2)",
-            );
+            return Err(PriceError::StrikeConfigurationError(
+                strike_price1,
+                strike_price2,
+            ));
         }
 
         Ok(Self {
@@ -140,15 +147,15 @@ impl BearSpread {
 
     pub fn payoff(&self) -> f64 {
         match self.category {
-            SpreadCategory::Call => {
+            CallPutCategory::Call => {
                 let first_payoff = (self.spot_price - self.strike_price1).max(0.);
                 let second_payoff = (self.spot_price - self.strike_price2).max(0.);
                 second_payoff - first_payoff
             }
-            SpreadCategory::Put => {
-                let first_payoff = (self.strike_price2 - self.spot_price).max(0.);
-                let second_payoff = (self.strike_price1 - self.spot_price).max(0.);
-                first_payoff - second_payoff
+            CallPutCategory::Put => {
+                let first_payoff = (self.strike_price1 - self.spot_price).max(0.);
+                let second_payoff = (self.strike_price2 - self.spot_price).max(0.);
+                second_payoff - first_payoff
             }
         }
     }
@@ -162,7 +169,7 @@ mod tests {
         let spot_price: f64 = 78.0;
         let strike_price1: f64 = 10.0;
         let strike_price2: f64 = 20.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let option =
             BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
@@ -173,26 +180,24 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Spot prices and strike prices must be positive numbers")]
+    #[should_panic]
     fn test_create_bull_spread_invalid_spot_price() {
         let spot_price: f64 = -78.0;
         let strike_price1: f64 = 10.0;
         let strike_price2: f64 = 20.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let _option =
             BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
     }
 
     #[test]
-    #[should_panic(
-        expected = "The strike price of the long leg (K1) must be strictly lower than the short leg (K2)"
-    )]
+    #[should_panic]
     fn test_create_bull_spread_invalid_strike_price() {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 50.0;
         let strike_price2: f64 = 40.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let _option =
             BullSpread::build(spot_price, strike_price1, strike_price2, category).unwrap();
@@ -203,7 +208,7 @@ mod tests {
         let spot_price: f64 = 90.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let option =
             BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
@@ -217,7 +222,7 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
-        let category = SpreadCategory::Put;
+        let category = CallPutCategory::Put;
 
         let option =
             BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
@@ -231,7 +236,7 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let option =
             BearSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
@@ -243,26 +248,24 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Spot prices and strike prices must be positive numbers")]
+    #[should_panic]
     fn test_created_bear_spread_invalid_spot_price() {
         let spot_price: f64 = -70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let _option =
             BearSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
     }
 
     #[test]
-    #[should_panic(
-        expected = "The strike price of the long leg (K1) must be strictly lower than the short leg (K2)"
-    )]
+    #[should_panic]
     fn test_created_bear_spread_invalid_strike_price() {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 90.0;
         let strike_price2: f64 = 20.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let _option =
             BearSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
@@ -273,7 +276,7 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
-        let category = SpreadCategory::Call;
+        let category = CallPutCategory::Call;
 
         let option = BearSpread::build(spot_price, strike_price1, strike_price2, category);
         let payoff = option.unwrap().payoff();
@@ -286,7 +289,7 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
-        let category = SpreadCategory::Put;
+        let category = CallPutCategory::Put;
 
         let option = BearSpread::build(spot_price, strike_price1, strike_price2, category);
         let payoff = option.unwrap().payoff();

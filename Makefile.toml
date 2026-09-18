@@ -37,6 +37,16 @@ description = "Clean the profile files of the generated coverages"
 command = "cargo"
 args = ["llvm-cov", "clean", "--workspace"]
 
+[tasks.flamegraph]
+description = "Generate a flamegraph for a binary or benchmark"
+command = "cargo"
+args = ["flamegraph"]
+
+[tasks.flamegraph-test]
+description = "Generate a flamegraph for a specific test"
+command = "cargo"
+args = ["flamegraph", "--test", "NOM_DU_TEST"]
+
 [tasks.check-all]
 description = "Check format, clippy, nextext and the doc"
 dependencies = ["fmt", "clippy", "coverage", "doc"]
