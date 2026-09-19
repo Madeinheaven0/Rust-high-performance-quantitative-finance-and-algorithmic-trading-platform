@@ -12,10 +12,12 @@ use super::errors::PriceError;
 /// ## Example
 ///
 /// ```
-/// use quant_core::payoffs::basics::{BasicOption, EuropeanOption};
+/// use quant_core::payoffs::basics::BasicOption;
+/// use quant_core::payoffs::categorical_options::CallPutCategory;
+/// use quant_core::payoffs::errors::PriceError;
 ///
-/// # fn main() -> Result<(), &'static str> {
-/// let call = BasicOption::new(300.0, 250.0, EuropeanOption::Call)?;
+/// # fn main() -> Result<(), PriceError> {
+/// let call = BasicOption::new(300.0, 250.0, CallPutCategory::Call)?;
 ///
 /// assert_eq!(call.payoff(), 50.0);
 ///
@@ -35,10 +37,13 @@ impl BasicOption {
     ///
     /// Returns an error if `spot_price` or `strike_price` is negative or zero.
     pub fn build(
-        spot_price: f64,
-        strike_price: f64,
+        spot_price: impl Into<f64>,
+        strike_price: impl Into<f64>,
         category: CallPutCategory,
     ) -> Result<Self, PriceError> {
+        let spot_price = spot_price.into();
+        let strike_price = strike_price.into();
+
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }

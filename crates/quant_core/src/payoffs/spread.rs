@@ -3,7 +3,6 @@
 
 use super::categorical_options::CallPutCategory;
 use super::errors::PriceError;
-use crate::payoffs::range_bound::LongButterflySpreadCategory::Call;
 
 /// The two categories of bull spread
 
@@ -14,10 +13,12 @@ use crate::payoffs::range_bound::LongButterflySpreadCategory::Call;
 /// ## Example
 ///
 ///```rust
-/// use quant_core::payoffs::exotics::{SpreadCategory  , BullSpread};
+/// use quant_core::payoffs::exotics::BullSpread;
+/// use quant_core::payoffs::categorical_options::CallPutCategory;
+/// use quant_core::payoffs::errors::PriceError;
 ///
-/// fn main() -> Resul<(), &'static str> {
-/// let bullcallspread = BullSpread::build(60., 27., 68., SpreadCategory::Call)?;
+/// fn main() -> Result<(), PriceError> {
+/// let bullcallspread = BullSpread::build(60., 27., 68., CallPutCategory::Call)?;
 ///
 /// assert_eq!(bullcallspread.payoff(), 33.0);
 ///
@@ -26,8 +27,8 @@ use crate::payoffs::range_bound::LongButterflySpreadCategory::Call;
 /// ```
 pub struct BullSpread {
     pub spot_price: f64,
-    pub strike_price1: f64,
-    pub strike_price2: f64,
+    pub strike_down: f64,
+    pub strike_up: f64,
     pub category: CallPutCategory,
 }
 
@@ -37,20 +38,22 @@ pub struct BullSpread {
 /// ## Example
 ///
 /// ```rust
-/// use quant_core::payoffs::exotics::{SpreadCategory  , BearSpread};
+/// use quant_core::payoffs::exotics::BearSpread;
+/// use quant_core::payoffs::errors::PriceError;
+/// use quant_core::payoffs::categorical_options::CallPutCategory;
 ///
-/// fn main() -> Result<(), &'static str> {
-/// let bearcallspread = BearSpread::build(50., 30., 100., Category::Call)?;
+/// fn main() -> Result<(), PriceError> {
+/// let bearcallspread = BearSpread::build(50., 30., 100., CallPutCategory::Call)?;
 ///
-/// assert_eq!(bearcallspread.payoff(), -20);
+/// assert_eq!(bearcallspread.payoff(), -20.);
 ///
 /// Ok(())
 /// }
 /// ```
 pub struct BearSpread {
     pub spot_price: f64,
-    pub strike_price1: f64,
-    pub strike_price2: f64,
+    pub strike_down: f64,
+    pub strike_up: f64,
     pub category: CallPutCategory,
 }
 
@@ -63,30 +66,34 @@ impl BullSpread {
     /// or
     /// if `strike_price1` is greater or equal to `strike_price2`
     pub fn build(
-        spot_price: f64,
-        strike_price1: f64,
-        strike_price2: f64,
+        spot_price: impl Into<f64>,
+        strike_down: impl Into<f64>,
+        strike_up: impl Into<f64>,
         category: CallPutCategory,
     ) -> Result<Self, PriceError> {
+        let spot_price = spot_price.into();
+        let strike_down = strike_down.into();
+        let strike_up = strike_up.into();
+        
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }
 
-        if strike_price1 <= 0.0 || strike_price2 <= 0.0 {
+        if strike_down <= 0.0 || strike_up <= 0.0 {
             return Err(PriceError::StrikePriceNegative);
         }
 
-        if strike_price1 >= strike_price2 {
+        if strike_down >= strike_up {
             return Err(PriceError::StrikeConfigurationError(
-                strike_price1,
-                strike_price2,
+                strike_down,
+                strike_up,
             ));
         }
 
         Ok(Self {
             spot_price,
-            strike_price1,
-            strike_price2,
+            strike_down,
+            strike_up,
             category,
         })
     }
@@ -95,13 +102,13 @@ impl BullSpread {
     pub fn payoff(&self) -> f64 {
         match self.category {
             CallPutCategory::Call => {
-                let first_payoff = (self.spot_price - self.strike_price1).max(0.);
-                let second_payoff = (self.spot_price - self.strike_price2).max(0.);
+                let first_payoff = (self.spot_price - self.strike_down).max(0.);
+                let second_payoff = (self.spot_price - self.strike_up).max(0.);
                 first_payoff - second_payoff
             }
             CallPutCategory::Put => {
-                let first_payoff = (self.strike_price1 - self.spot_price).max(0.);
-                let second_payoff = (self.strike_price2 - self.spot_price).max(0.);
+                let first_payoff = (self.strike_down - self.spot_price).max(0.);
+                let second_payoff = (self.strike_up - self.spot_price).max(0.);
                 first_payoff - second_payoff
             }
         }
@@ -117,30 +124,34 @@ impl BearSpread {
     /// or
     /// if `strike_price1` is greater or equal to `strike_price2`
     pub fn build(
-        spot_price: f64,
-        strike_price1: f64,
-        strike_price2: f64,
+        spot_price: impl Into<f64>,
+        strike_down: impl Into<f64>,
+        strike_up: impl Into<f64>,
         category: CallPutCategory,
     ) -> Result<Self, PriceError> {
+        let spot_price = spot_price.into();
+        let strike_down = strike_down.into();
+        let strike_up = strike_up.into();
+        
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }
 
-        if strike_price1 <= 0.0 || strike_price2 <= 0.0 {
+        if strike_down <= 0.0 || strike_up <= 0.0 {
             return Err(PriceError::StrikePriceNegative);
         }
 
-        if strike_price1 >= strike_price2 {
+        if strike_down >= strike_up {
             return Err(PriceError::StrikeConfigurationError(
-                strike_price1,
-                strike_price2,
+                strike_down,
+                strike_up,
             ));
         }
 
         Ok(Self {
             spot_price,
-            strike_price1,
-            strike_price2,
+            strike_down,
+            strike_up,
             category,
         })
     }
@@ -148,13 +159,13 @@ impl BearSpread {
     pub fn payoff(&self) -> f64 {
         match self.category {
             CallPutCategory::Call => {
-                let first_payoff = (self.spot_price - self.strike_price1).max(0.);
-                let second_payoff = (self.spot_price - self.strike_price2).max(0.);
+                let first_payoff = (self.spot_price - self.strike_down).max(0.);
+                let second_payoff = (self.spot_price - self.strike_up).max(0.);
                 second_payoff - first_payoff
             }
             CallPutCategory::Put => {
-                let first_payoff = (self.strike_price1 - self.spot_price).max(0.);
-                let second_payoff = (self.strike_price2 - self.spot_price).max(0.);
+                let first_payoff = (self.strike_down - self.spot_price).max(0.);
+                let second_payoff = (self.strike_up - self.spot_price).max(0.);
                 second_payoff - first_payoff
             }
         }
@@ -167,15 +178,15 @@ mod tests {
     #[test]
     fn test_create_bull_spread() {
         let spot_price: f64 = 78.0;
-        let strike_price1: f64 = 10.0;
-        let strike_price2: f64 = 20.0;
+        let strike_down: f64 = 10.0;
+        let strike_up: f64 = 20.0;
         let category = CallPutCategory::Call;
 
         let option =
-            BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
+            BullSpread::build(spot_price, strike_down, strike_up, category.clone()).unwrap();
 
         assert_eq!(option.spot_price, spot_price);
-        assert_eq!(option.strike_price1, strike_price1);
+        assert_eq!(option.strike_down, strike_down);
         assert_eq!(option.category, category);
     }
 
@@ -234,16 +245,16 @@ mod tests {
     #[test]
     fn test_created_bear_spread() {
         let spot_price: f64 = 70.0;
-        let strike_price1: f64 = 20.0;
-        let strike_price2: f64 = 90.0;
+        let strike_down: f64 = 20.0;
+        let strike_up: f64 = 90.0;
         let category = CallPutCategory::Call;
 
         let option =
-            BearSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
+            BearSpread::build(spot_price, strike_down, strike_up, category.clone()).unwrap();
 
         assert_eq!(option.spot_price, spot_price);
-        assert_eq!(option.strike_price1, strike_price1);
-        assert_eq!(option.strike_price2, strike_price2);
+        assert_eq!(option.strike_down, strike_down);
+        assert_eq!(option.strike_up, strike_down);
         assert_eq!(option.category, category);
     }
 

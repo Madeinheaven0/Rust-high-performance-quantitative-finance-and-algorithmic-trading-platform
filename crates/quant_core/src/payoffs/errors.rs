@@ -10,6 +10,6 @@ pub enum PriceError {
     SpotPriceInvalid,
     #[error("Enter a valid number for the strike price")]
     StrikePriceInvalid,
-    #[error("The first strike K1 ({0}) price must be less than the second strike price K2 ({1})")]
+    #[error("The strike ({0}) price must be less than the strike up ({1})")]
     StrikeConfigurationError(f64, f64),
 }
