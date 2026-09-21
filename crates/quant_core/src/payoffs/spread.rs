@@ -5,7 +5,6 @@ use super::categorical_options::CallPutCategory;
 use super::errors::PriceError;
 
 /// The two categories of bull spread
-
 /// The structure of a bull spread
 ///
 /// Implements the method who compute the payoff of the strategies whether is a bull call spread or a bull put spread
@@ -254,7 +253,7 @@ mod tests {
 
         assert_eq!(option.spot_price, spot_price);
         assert_eq!(option.strike_down, strike_down);
-        assert_eq!(option.strike_up, strike_down);
+        assert_eq!(option.strike_up, strike_up);
         assert_eq!(option.category, category);
     }
 

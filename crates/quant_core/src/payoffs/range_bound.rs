@@ -98,7 +98,7 @@ impl IronCondor {
         }
 
         if strike_down1 >= strike_up1 {
-            return return Err(PriceError::StrikeConfigurationError(
+            return Err(PriceError::StrikeConfigurationError(
                 strike_down1,
                 strike_up1,
             ));
@@ -193,6 +193,10 @@ impl IronButterfly {
 
         if strike_down >= strike_up {
             return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
+        }
+
+        if main_strike >= strike_up {
+            return Err(PriceError::StrikeConfigurationError(main_strike, strike_up));
         }
 
         Ok(
@@ -290,7 +294,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "StrikeConfigurationError")]
     fn test_create_iron_condor_with_bad_strike_configuration() {
         let spot_price = 100.;
         let strike_down1 = 90.;
@@ -324,5 +328,74 @@ mod tests {
         ).unwrap();
 
         assert_eq!(condor.payoff(), -10.);
+    }
+
+    #[test]
+    fn test_build_iron_butterfly() {
+        let spot_price = 100.;
+        let main_strike = 80.;
+        let strike_down1 = 70.;
+        let strike_up1 = 90.;
+
+        let iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+        ).unwrap();
+
+        assert_eq!(iron_butterfly.main_strike, main_strike);
+        assert_eq!(iron_butterfly.strike_down, strike_down1);
+        assert_eq!(iron_butterfly.strike_up, strike_up1);
+        assert_eq!(iron_butterfly.spot_price, spot_price);
+    }
+
+    #[test]
+    #[should_panic(expected = "SpotPriceNegative")]
+    fn test_build_iron_butterfly_with_wrong_spot_price() {
+        let spot_price = -100.;
+        let main_strike = 80.;
+        let strike_down1 = 70.;
+        let strike_up1 = 90.;
+
+        let _iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+        ).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "StrikeConfigurationError")]
+    fn test_build_iron_butterfly_with_wrong_configuration() {
+        let spot_price = 100.;
+        let main_strike = 80.;
+        let strike_down1 = 70.;
+        let strike_up1 = 80.;
+
+        let _iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+        ).unwrap();
+    }
+
+    #[test]
+    fn test_iron_butterfly_payoff() {
+        let spot_price = 100.;
+        let main_strike = 80.;
+        let strike_down1 = 70.;
+        let strike_up1 = 90.;
+
+        let iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+        ).unwrap();
+
+        assert_eq!(iron_butterfly.payoff(), -10.);
     }
 }

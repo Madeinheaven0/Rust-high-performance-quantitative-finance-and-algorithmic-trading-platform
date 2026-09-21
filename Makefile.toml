@@ -37,15 +37,20 @@ description = "Clean the profile files of the generated coverages"
 command = "cargo"
 args = ["llvm-cov", "clean", "--workspace"]
 
-[tasks.flamegraph]
-description = "Generate a flamegraph for a binary or benchmark"
+[tasks.flamegraph-bench]
+description = "Generate a flamegraph for a specific benchmark (recommended)"
 command = "cargo"
-args = ["flamegraph"]
+args = ["flamegraph", "--bench", "${@}"]
+
+[tasks.flamegraph-bin]
+description = "Generate a specific binary flamegraph"
+command = "cargo"
+args = ["flamegraph", "--bin", "${@}"]
 
 [tasks.flamegraph-test]
-description = "Generate a flamegraph for a specific test"
+description = "Generate a flamegraph for an integration test file"
 command = "cargo"
-args = ["flamegraph", "--test", "NOM_DU_TEST"]
+args = ["flamegraph", "--test", "${@}"]
 
 [tasks.check-all]
 description = "Check format, clippy, nextext and the doc"
