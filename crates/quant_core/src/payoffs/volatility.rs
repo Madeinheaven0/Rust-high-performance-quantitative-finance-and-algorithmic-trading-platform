@@ -68,7 +68,7 @@ impl Straddle {
     ) -> Result<Self, PriceError> {
         let spot_price = spot_price.into();
         let strike_price = strike_price.into();
-        
+
         if spot_price <= 0.0 || strike_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }
@@ -115,7 +115,7 @@ impl Strangle {
         let spot_price = spot_price.into();
         let strike_down = strike_down.into();
         let strike_up = strike_up.into();
-        
+
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }
@@ -125,10 +125,7 @@ impl Strangle {
         }
 
         if strike_down >= strike_up {
-            return Err(PriceError::StrikeConfigurationError(
-                strike_down,
-                strike_up,
-            ));
+            return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
         }
 
         Ok(Self {
@@ -231,8 +228,7 @@ mod tests {
 
         let category = LongShortCategory::Long;
 
-        let long_strangle =
-            Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
+        let long_strangle = Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
 
         assert_eq!(long_strangle.category, LongShortCategory::Long);
         assert_eq!(long_strangle.spot_price, 100.0);
@@ -247,8 +243,7 @@ mod tests {
         let strike_up = 100.0;
         let category = LongShortCategory::Short;
 
-        let long_strangle =
-            Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
+        let long_strangle = Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
 
         assert_eq!(long_strangle.category, LongShortCategory::Short);
         assert_eq!(long_strangle.spot_price, 100.0);
@@ -276,8 +271,7 @@ mod tests {
         let strike_up = 90.0;
         let category = LongShortCategory::Long;
 
-        let _long_strangle =
-            Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
+        let _long_strangle = Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
     }
 
     #[test]
@@ -287,8 +281,7 @@ mod tests {
         let strike_up = 90.0;
         let category = LongShortCategory::Long;
 
-        let long_strangle =
-            Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
+        let long_strangle = Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
 
         assert_eq!(long_strangle.payoff(), 10.0);
     }
@@ -300,8 +293,7 @@ mod tests {
         let strike_up = 90.0;
         let category = LongShortCategory::Short;
 
-        let short_strangle =
-            Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
+        let short_strangle = Strangle::build(spot_price, strike_down, strike_up, category).unwrap();
 
         assert_eq!(short_strangle.payoff(), -10.0);
     }

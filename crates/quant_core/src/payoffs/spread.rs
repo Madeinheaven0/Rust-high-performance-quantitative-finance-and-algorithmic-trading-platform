@@ -73,7 +73,7 @@ impl BullSpread {
         let spot_price = spot_price.into();
         let strike_down = strike_down.into();
         let strike_up = strike_up.into();
-        
+
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }
@@ -83,10 +83,7 @@ impl BullSpread {
         }
 
         if strike_down >= strike_up {
-            return Err(PriceError::StrikeConfigurationError(
-                strike_down,
-                strike_up,
-            ));
+            return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
         }
 
         Ok(Self {
@@ -131,7 +128,7 @@ impl BearSpread {
         let spot_price = spot_price.into();
         let strike_down = strike_down.into();
         let strike_up = strike_up.into();
-        
+
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }
@@ -141,10 +138,7 @@ impl BearSpread {
         }
 
         if strike_down >= strike_up {
-            return Err(PriceError::StrikeConfigurationError(
-                strike_down,
-                strike_up,
-            ));
+            return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
         }
 
         Ok(Self {

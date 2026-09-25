@@ -24,6 +24,7 @@ use super::errors::PriceError;
 /// # Ok(())
 /// # }
 /// ```
+#[derive(Debug)]
 pub struct BasicOption {
     pub spot_price: f64,
     pub strike_price: f64,
