@@ -12,4 +12,6 @@ pub enum PriceError {
     StrikePriceInvalid,
     #[error("The strike ({0}) price must be less than the strike up ({1})")]
     StrikeConfigurationError(f64, f64),
+    #[error("At least one prime price is less or equal than 0")]
+    PrimePriceError,
 }

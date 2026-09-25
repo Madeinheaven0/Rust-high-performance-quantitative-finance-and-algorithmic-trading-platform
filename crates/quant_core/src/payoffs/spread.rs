@@ -28,6 +28,8 @@ pub struct BullSpread {
     pub spot_price: f64,
     pub strike_down: f64,
     pub strike_up: f64,
+    pub prime_up: f64,
+    pub prime_down: f64,
     pub category: CallPutCategory,
 }
 
@@ -53,6 +55,8 @@ pub struct BearSpread {
     pub spot_price: f64,
     pub strike_down: f64,
     pub strike_up: f64,
+    pub prime_up: f64,
+    pub prime_down: f64,
     pub category: CallPutCategory,
 }
 
@@ -68,11 +72,15 @@ impl BullSpread {
         spot_price: impl Into<f64>,
         strike_down: impl Into<f64>,
         strike_up: impl Into<f64>,
+        prime_down: impl Into<f64>,
+        prime_up: impl Into<f64>,
         category: CallPutCategory,
     ) -> Result<Self, PriceError> {
         let spot_price = spot_price.into();
         let strike_down = strike_down.into();
         let strike_up = strike_up.into();
+        let prime_down = prime_down.into();
+        let prime_up = prime_up.into();
 
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
@@ -86,10 +94,16 @@ impl BullSpread {
             return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
         }
 
+        if prime_down <= 0.0 || prime_up <= 0.0 {
+            return Err(PriceError::PrimePriceError);
+        }
+
         Ok(Self {
             spot_price,
             strike_down,
             strike_up,
+            prime_down,
+            prime_up,
             category,
         })
     }
@@ -109,6 +123,10 @@ impl BullSpread {
             }
         }
     }
+
+    pub fn pnl(&self) -> f64 {
+        self.payoff() + self.prime_up - self.prime_down
+    }
 }
 
 impl BearSpread {
@@ -123,11 +141,15 @@ impl BearSpread {
         spot_price: impl Into<f64>,
         strike_down: impl Into<f64>,
         strike_up: impl Into<f64>,
+        prime_down: impl Into<f64>,
+        prime_up: impl Into<f64>,
         category: CallPutCategory,
     ) -> Result<Self, PriceError> {
         let spot_price = spot_price.into();
         let strike_down = strike_down.into();
         let strike_up = strike_up.into();
+        let prime_down = prime_down.into();
+        let prime_up = prime_up.into();
 
         if spot_price <= 0.0 {
             return Err(PriceError::SpotPriceNegative(spot_price));
@@ -141,10 +163,16 @@ impl BearSpread {
             return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
         }
 
+        if prime_down <= 0.0 || prime_up <= 0.0 {
+            return Err(PriceError::PrimePriceError);
+        }
+
         Ok(Self {
             spot_price,
             strike_down,
             strike_up,
+            prime_down,
+            prime_up,
             category,
         })
     }
@@ -163,6 +191,10 @@ impl BearSpread {
             }
         }
     }
+
+    pub fn pnl(&self) -> f64 {
+        self.payoff() - self.prime_up + self.prime_down
+    }
 }
 
 #[cfg(test)]
@@ -173,10 +205,19 @@ mod tests {
         let spot_price: f64 = 78.0;
         let strike_down: f64 = 10.0;
         let strike_up: f64 = 20.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let option =
-            BullSpread::build(spot_price, strike_down, strike_up, category.clone()).unwrap();
+        let option = BullSpread::build(
+            spot_price,
+            strike_down,
+            strike_up,
+            prime_up,
+            prime_down,
+            category.clone(),
+        )
+        .unwrap();
 
         assert_eq!(option.spot_price, spot_price);
         assert_eq!(option.strike_down, strike_down);
@@ -189,10 +230,19 @@ mod tests {
         let spot_price: f64 = -78.0;
         let strike_price1: f64 = 10.0;
         let strike_price2: f64 = 20.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let _option =
-            BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
+        let _option = BullSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_down,
+            category.clone(),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -201,10 +251,19 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 50.0;
         let strike_price2: f64 = 40.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let _option =
-            BullSpread::build(spot_price, strike_price1, strike_price2, category).unwrap();
+        let _option = BullSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_down,
+            category,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -212,10 +271,19 @@ mod tests {
         let spot_price: f64 = 90.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let option =
-            BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
+        let option = BullSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_down,
+            category.clone(),
+        )
+        .unwrap();
 
         let payoff = option.payoff();
         assert_eq!(payoff, 70.0);
@@ -226,10 +294,19 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Put;
 
-        let option =
-            BullSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
+        let option = BullSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_down,
+            category.clone(),
+        )
+        .unwrap();
 
         let payoff = option.payoff();
         assert_eq!(payoff, -20.0);
@@ -240,10 +317,19 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_down: f64 = 20.0;
         let strike_up: f64 = 90.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let option =
-            BearSpread::build(spot_price, strike_down, strike_up, category.clone()).unwrap();
+        let option = BearSpread::build(
+            spot_price,
+            strike_down,
+            strike_up,
+            prime_up,
+            prime_down,
+            category.clone(),
+        )
+        .unwrap();
 
         assert_eq!(option.spot_price, spot_price);
         assert_eq!(option.strike_down, strike_down);
@@ -257,10 +343,19 @@ mod tests {
         let spot_price: f64 = -70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let _option =
-            BearSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
+        let _option = BearSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_down,
+            category.clone(),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -269,10 +364,19 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 90.0;
         let strike_price2: f64 = 20.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let _option =
-            BearSpread::build(spot_price, strike_price1, strike_price2, category.clone()).unwrap();
+        let _option = BearSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_down,
+            category.clone(),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -280,9 +384,18 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Call;
 
-        let option = BearSpread::build(spot_price, strike_price1, strike_price2, category);
+        let option = BearSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_down,
+            category,
+        );
         let payoff = option.unwrap().payoff();
 
         assert_eq!(payoff, -50.0);
@@ -293,9 +406,18 @@ mod tests {
         let spot_price: f64 = 70.0;
         let strike_price1: f64 = 20.0;
         let strike_price2: f64 = 90.0;
+        let prime_down: f64 = 10.0;
+        let prime_up: f64 = 10.0;
         let category = CallPutCategory::Put;
 
-        let option = BearSpread::build(spot_price, strike_price1, strike_price2, category);
+        let option = BearSpread::build(
+            spot_price,
+            strike_price1,
+            strike_price2,
+            prime_up,
+            prime_up,
+            category,
+        );
         let payoff = option.unwrap().payoff();
 
         assert_eq!(payoff, 20.0);

@@ -22,20 +22,25 @@ fn run(cli: Cli) -> Result<(), PriceError> {
         Strategy::SimpleOption {
             spot,
             strike,
+            prime,
             category,
         } => {
-            let claim = BasicOption::build(spot, strike, category).expect("Something went wrong");
+            let claim =
+                BasicOption::build(spot, strike, prime, category).expect("Something went wrong");
             let payoff = claim.payoff();
+            let pnl = claim.pnl();
 
             println!(
                 "The option:\n
                         - The spot: {},\n\
-                        - The strike: {}, \n
+                        - The strike: {}, \n\
+                        - The prime: {}, \n\
                         - The type: {:?}",
-                claim.spot_price, claim.strike_price, claim.category
+                claim.spot_price, claim.strike_price, prime, claim.category
             );
 
-            println!("The payoff type: {:?}", payoff);
+            println!("The payoff type: {}", payoff);
+            println!("The pnl: {}", pnl);
 
             Ok(())
         }
@@ -43,11 +48,15 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             spot,
             strike_up,
             strike_down,
+            prime_up,
+            prime_down,
             category,
         } => {
-            let claim = BullSpread::build(spot, strike_down, strike_up, category)
-                .expect("Something went wrong");
+            let claim =
+                BullSpread::build(spot, strike_down, strike_up, prime_up, prime_down, category)
+                    .expect("Something went wrong");
             let payoff = claim.payoff();
+            let pnl = claim.pnl();
 
             println!(
                 "The BullSpread:\n\
@@ -59,6 +68,7 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             );
 
             println!("The payoff: {:?}", payoff);
+            println!("The pnl: {:?}", pnl);
 
             Ok(())
         }
@@ -67,11 +77,15 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             spot,
             strike_up,
             strike_down,
+            prime_up,
+            prime_down,
             category,
         } => {
-            let claim = BearSpread::build(spot, strike_down, strike_up, category)
-                .expect("Something went wrong");
+            let claim =
+                BearSpread::build(spot, strike_down, strike_up, prime_up, prime_down, category)
+                    .expect("Something went wrong");
             let payoff = claim.payoff();
+            let pnl = claim.pnl();
 
             println!(
                 "The BearSpread:\n\
@@ -82,7 +96,8 @@ fn run(cli: Cli) -> Result<(), PriceError> {
                 claim.spot_price, claim.strike_up, claim.strike_up, claim.category
             );
 
-            println!("The payoff: {:?}", payoff);
+            println!("The payoff: {}", payoff);
+            println!("The pnl: {}", pnl);
 
             Ok(())
         }
@@ -90,10 +105,14 @@ fn run(cli: Cli) -> Result<(), PriceError> {
         Strategy::Straddle {
             spot,
             strike,
+            call_prime,
+            put_prime,
             category,
         } => {
-            let claim = Straddle::build(spot, strike, category).expect("Something went wrong");
+            let claim = Straddle::build(spot, strike, call_prime, put_prime, category)
+                .expect("Something went wrong");
             let payoff = claim.payoff();
+            let pnl = claim.pnl();
 
             println!(
                 "The Straddle:\n
@@ -103,7 +122,8 @@ fn run(cli: Cli) -> Result<(), PriceError> {
                 claim.spot_price, claim.strike_price, claim.category
             );
 
-            println!("The payoff: {:?}", payoff);
+            println!("The payoff: {}", payoff);
+            println!("The pnl: {}", pnl);
 
             Ok(())
         }
@@ -112,11 +132,21 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             spot,
             strike_up,
             strike_down,
+            call_prime,
+            put_prime,
             category,
         } => {
-            let claim = Strangle::build(spot, strike_down, strike_up, category)
-                .expect("Something went wrong");
+            let claim = Strangle::build(
+                spot,
+                strike_down,
+                strike_up,
+                call_prime,
+                put_prime,
+                category,
+            )
+            .expect("Something went wrong");
             let payoff = claim.payoff();
+            let pnl = claim.pnl();
 
             println!(
                 "The Strangle:\n\
@@ -127,7 +157,8 @@ fn run(cli: Cli) -> Result<(), PriceError> {
                 claim.spot_price, claim.strike_up, claim.strike_up, claim.category
             );
 
-            println!("The payoff: {:?}", payoff);
+            println!("The payoff: {}", payoff);
+            println!("The pnl: {}", pnl);
 
             Ok(())
         }
@@ -137,10 +168,24 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             strike_up,
             strike_main,
             strike_down,
+            main_call_prime,
+            main_put_prime,
+            down_prime,
+            up_prime,
         } => {
-            let claim = IronButterfly::build(spot, strike_main, strike_down, strike_up)
-                .expect("Something went wrong");
+            let claim = IronButterfly::build(
+                spot,
+                strike_main,
+                strike_down,
+                strike_up,
+                main_call_prime,
+                main_put_prime,
+                down_prime,
+                up_prime,
+            )
+            .expect("Something went wrong");
             let payoff = claim.payoff();
+            let pnl = claim.pnl();
 
             println!(
                 "The IronButterfly:\n\
@@ -152,6 +197,7 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             );
 
             println!("The payoff: {:?}", payoff);
+            println!("The pnl: {}", pnl);
 
             Ok(())
         }
@@ -162,10 +208,25 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             strike_up1,
             strike_down2,
             strike_up2,
+            call_prime1,
+            call_prime2,
+            put_prime1,
+            put_prime2,
         } => {
-            let claim = IronCondor::build(spot, strike_down1, strike_up1, strike_down2, strike_up2)
-                .expect("Something went wrong");
+            let claim = IronCondor::build(
+                spot,
+                strike_down1,
+                strike_up1,
+                strike_down2,
+                strike_up2,
+                call_prime1,
+                call_prime2,
+                put_prime1,
+                put_prime2,
+            )
+            .expect("Something went wrong");
             let payoff = claim.payoff();
+            let pnl = claim.pnl();
 
             println!(
                 "The IronButterfly:\n\
@@ -182,6 +243,7 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             );
 
             println!("The payoff: {:?}", payoff);
+            println!("The pnl: {}", pnl);
 
             Ok(())
         }

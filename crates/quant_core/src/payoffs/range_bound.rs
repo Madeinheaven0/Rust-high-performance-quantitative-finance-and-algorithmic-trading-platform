@@ -1,10 +1,10 @@
 //! # The Iron series strategies
 //! All the structuration and computation for the payoff of advanced strategies of option used when we are in range period
 
-use super::categorical_options::{CallPutCategory, LongShortCategory};
+use super::categorical_options::CallPutCategory;
 use super::errors::PriceError;
 use super::spread::{BearSpread, BullSpread};
-use super::volatility::{Straddle, Strangle};
+use crate::payoffs::basics::BasicOption;
 
 /// The structure of an iron condor
 ///
@@ -36,6 +36,10 @@ pub struct IronCondor {
     pub strike_up1: f64,
     pub strike_down2: f64,
     pub strike_up2: f64,
+    pub call_prime1: f64,
+    pub call_prime2: f64,
+    pub put_prime1: f64,
+    pub put_prime2: f64,
 }
 
 /// The structure of an iron butterfly
@@ -66,6 +70,10 @@ pub struct IronButterfly {
     pub main_strike: f64,
     pub strike_down: f64,
     pub strike_up: f64,
+    pub main_prime_call: f64,
+    pub main_prime_put: f64,
+    pub down_prime: f64,
+    pub up_prime: f64,
 }
 
 impl IronCondor {
@@ -82,12 +90,20 @@ impl IronCondor {
         strike_up1: impl Into<f64>,
         strike_down2: impl Into<f64>,
         strike_up2: impl Into<f64>,
+        call_prime1: impl Into<f64>,
+        call_prime2: impl Into<f64>,
+        put_prime1: impl Into<f64>,
+        put_prime2: impl Into<f64>,
     ) -> Result<Self, PriceError> {
         let spot_price = spot_price.into();
         let strike_down1 = strike_down1.into();
         let strike_up1 = strike_up1.into();
         let strike_down2 = strike_down2.into();
         let strike_up2 = strike_up2.into();
+        let call_prime1 = call_prime1.into();
+        let call_prime2 = call_prime2.into();
+        let put_prime1 = put_prime1.into();
+        let put_prime2 = put_prime2.into();
 
         if spot_price < 0. {
             return Err(PriceError::SpotPriceNegative(spot_price));
@@ -136,12 +152,20 @@ impl IronCondor {
             ));
         }
 
+        if call_prime1 <= 0. || call_prime2 <= 0. || put_prime1 <= 0. || put_prime2 <= 0.0 {
+            return Err(PriceError::PrimePriceError);
+        }
+
         Ok(Self {
             spot_price,
             strike_down1,
             strike_up1,
             strike_down2,
             strike_up2,
+            call_prime1,
+            call_prime2,
+            put_prime1,
+            put_prime2,
         })
     }
 
@@ -151,6 +175,8 @@ impl IronCondor {
             self.spot_price,
             self.strike_down1,
             self.strike_up1,
+            self.call_prime1,
+            self.call_prime2,
             CallPutCategory::Put,
         )
         .unwrap()
@@ -160,12 +186,18 @@ impl IronCondor {
             self.spot_price,
             self.strike_down2,
             self.strike_up2,
+            self.put_prime1,
+            self.put_prime2,
             CallPutCategory::Call,
         )
         .unwrap()
         .payoff();
 
         first_payoff + second_payoff
+    }
+
+    pub fn pnl(&self) -> f64 {
+        self.payoff() - self.call_prime1 + self.call_prime2 - self.put_prime1 + self.put_prime2
     }
 }
 
@@ -182,11 +214,19 @@ impl IronButterfly {
         main_strike: impl Into<f64>,
         strike_down: impl Into<f64>,
         strike_up: impl Into<f64>,
+        main_prime_call: impl Into<f64>,
+        main_prime_put: impl Into<f64>,
+        down_prime: impl Into<f64>,
+        up_prime: impl Into<f64>,
     ) -> Result<Self, PriceError> {
         let spot_price = spot_price.into();
         let main_strike = main_strike.into();
         let strike_down = strike_down.into();
         let strike_up = strike_up.into();
+        let main_prime_call = main_prime_call.into();
+        let main_prime_put = main_prime_put.into();
+        let down_prime = down_prime.into();
+        let up_prime = up_prime.into();
 
         if spot_price < 0. {
             return Err(PriceError::SpotPriceNegative(spot_price));
@@ -211,30 +251,65 @@ impl IronButterfly {
             return Err(PriceError::StrikeConfigurationError(main_strike, strike_up));
         }
 
+        if main_prime_call <= 0. || up_prime <= 0. || down_prime <= 0. || main_prime_put <= 0. {
+            return Err(PriceError::PrimePriceError);
+        }
+
         Ok(Self {
             spot_price,
             main_strike,
             strike_down,
             strike_up,
+            main_prime_call,
+            main_prime_put,
+            up_prime,
+            down_prime,
         })
     }
 
+    /// Compute the payoff of the strategy
     pub fn payoff(&self) -> f64 {
-        let straddle =
-            Straddle::build(self.spot_price, self.main_strike, LongShortCategory::Short).unwrap();
-
-        let strangle = Strangle::build(
+        let main_put = BasicOption::build(
+            self.spot_price,
+            self.main_strike,
+            self.main_prime_put,
+            CallPutCategory::Put,
+        )
+        .unwrap();
+        let put_down = BasicOption::build(
             self.spot_price,
             self.strike_down,
+            self.down_prime,
+            CallPutCategory::Put,
+        )
+        .unwrap();
+        let main_call = BasicOption::build(
+            self.spot_price,
+            self.main_strike,
+            self.main_prime_call,
+            CallPutCategory::Call,
+        )
+        .unwrap();
+        let call_up = BasicOption::build(
+            self.spot_price,
             self.strike_up,
-            LongShortCategory::Long,
+            self.up_prime,
+            CallPutCategory::Call,
         )
         .unwrap();
 
-        let first_payoff = straddle.payoff();
-        let second_payoff = strangle.payoff();
+        let payoff1 = main_put.payoff();
+        let payoff2 = put_down.payoff();
+        let payoff3 = main_call.payoff();
+        let payoff4 = call_up.payoff();
 
-        first_payoff + second_payoff
+        payoff1 + payoff2 + payoff3 + payoff4
+    }
+
+    pub fn pnl(&self) -> f64 {
+        let payoff = self.payoff();
+
+        payoff + self.main_prime_put + self.main_prime_call - self.down_prime - self.up_prime
     }
 }
 
@@ -249,6 +324,10 @@ mod tests {
         let strike_up1 = 60.;
         let strike_down2 = 70.;
         let strike_up2 = 80.;
+        let call_prime1 = 2.;
+        let call_prime2 = 2.;
+        let put_prime1 = 1.;
+        let put_prime2 = 1.;
 
         let condor = IronCondor::build(
             spot_price,
@@ -256,6 +335,10 @@ mod tests {
             strike_up1,
             strike_down2,
             strike_up2,
+            call_prime1,
+            call_prime2,
+            put_prime1,
+            put_prime2,
         )
         .unwrap();
         assert_eq!(condor.spot_price, spot_price);
@@ -273,6 +356,10 @@ mod tests {
         let strike_up1 = 80.;
         let strike_down2 = 50.;
         let strike_up2 = 70.;
+        let call_prime1 = 2.;
+        let call_prime2 = 2.;
+        let put_prime1 = 1.;
+        let put_prime2 = 1.;
 
         let _condor = IronCondor::build(
             spot_price,
@@ -280,6 +367,10 @@ mod tests {
             strike_up1,
             strike_down2,
             strike_up2,
+            call_prime1,
+            call_prime2,
+            put_prime1,
+            put_prime2,
         )
         .unwrap();
     }
@@ -292,6 +383,10 @@ mod tests {
         let strike_up1 = 80.;
         let strike_down2 = 50.;
         let strike_up2 = 70.;
+        let call_prime1 = 2.;
+        let call_prime2 = 2.;
+        let put_prime1 = 1.;
+        let put_prime2 = 1.;
 
         let _condor = IronCondor::build(
             spot_price,
@@ -299,6 +394,10 @@ mod tests {
             strike_up1,
             strike_down2,
             strike_up2,
+            call_prime1,
+            call_prime2,
+            put_prime1,
+            put_prime2,
         )
         .unwrap();
     }
@@ -311,6 +410,10 @@ mod tests {
         let strike_up1 = 80.;
         let strike_down2 = 50.;
         let strike_up2 = 70.;
+        let call_prime1 = 2.;
+        let call_prime2 = 2.;
+        let put_prime1 = 1.;
+        let put_prime2 = 1.;
 
         let _condor = IronCondor::build(
             spot_price,
@@ -318,6 +421,10 @@ mod tests {
             strike_up1,
             strike_down2,
             strike_up2,
+            call_prime1,
+            call_prime2,
+            put_prime1,
+            put_prime2,
         )
         .unwrap();
     }
@@ -329,6 +436,10 @@ mod tests {
         let strike_up1 = 60.;
         let strike_down2 = 70.;
         let strike_up2 = 80.;
+        let call_prime1 = 2.;
+        let call_prime2 = 2.;
+        let put_prime1 = 1.;
+        let put_prime2 = 1.;
 
         let condor = IronCondor::build(
             spot_price,
@@ -336,6 +447,10 @@ mod tests {
             strike_up1,
             strike_down2,
             strike_up2,
+            call_prime1,
+            call_prime2,
+            put_prime1,
+            put_prime2,
         )
         .unwrap();
 
@@ -348,9 +463,22 @@ mod tests {
         let main_strike = 80.;
         let strike_down1 = 70.;
         let strike_up1 = 90.;
+        let main_prime_call = 2.;
+        let main_prime_put = 2.;
+        let down_prime = 2.;
+        let up_prime = 2.;
 
-        let iron_butterfly =
-            IronButterfly::build(spot_price, main_strike, strike_down1, strike_up1).unwrap();
+        let iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+            main_prime_call,
+            main_prime_put,
+            down_prime,
+            up_prime,
+        )
+        .unwrap();
 
         assert_eq!(iron_butterfly.main_strike, main_strike);
         assert_eq!(iron_butterfly.strike_down, strike_down1);
@@ -365,9 +493,22 @@ mod tests {
         let main_strike = 80.;
         let strike_down1 = 70.;
         let strike_up1 = 90.;
+        let main_prime_call = 2.;
+        let main_prime_put = 2.;
+        let down_prime = 2.;
+        let up_prime = 2.;
 
-        let _iron_butterfly =
-            IronButterfly::build(spot_price, main_strike, strike_down1, strike_up1).unwrap();
+        let _iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+            main_prime_call,
+            main_prime_put,
+            down_prime,
+            up_prime,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -377,9 +518,22 @@ mod tests {
         let main_strike = 80.;
         let strike_down1 = 70.;
         let strike_up1 = 80.;
+        let main_prime_call = 2.;
+        let main_prime_put = 2.;
+        let down_prime = 2.;
+        let up_prime = 2.;
 
-        let _iron_butterfly =
-            IronButterfly::build(spot_price, main_strike, strike_down1, strike_up1).unwrap();
+        let _iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+            main_prime_call,
+            main_prime_put,
+            down_prime,
+            up_prime,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -388,9 +542,22 @@ mod tests {
         let main_strike = 80.;
         let strike_down1 = 70.;
         let strike_up1 = 90.;
+        let main_prime_call = 2.;
+        let main_prime_put = 2.;
+        let down_prime = 2.;
+        let up_prime = 2.;
 
-        let iron_butterfly =
-            IronButterfly::build(spot_price, main_strike, strike_down1, strike_up1).unwrap();
+        let iron_butterfly = IronButterfly::build(
+            spot_price,
+            main_strike,
+            strike_down1,
+            strike_up1,
+            main_prime_call,
+            main_prime_put,
+            down_prime,
+            up_prime,
+        )
+        .unwrap();
 
         assert_eq!(iron_butterfly.payoff(), -10.);
     }
