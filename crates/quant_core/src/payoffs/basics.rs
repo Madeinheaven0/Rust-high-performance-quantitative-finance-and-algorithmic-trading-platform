@@ -4,10 +4,9 @@
 use super::categorical_options::CallPutCategory;
 use super::errors::PriceError;
 
-/// Represents the basic option's type used for strategies as known Call and Put European
-/// options.
+/// Represents the basic option's type used for strategies as known Call and Put European options.
 ///
-/// Implements method who compute the payoff of the option based on whether is a Call or a PUt
+/// Implements methods to compute the payoff and PnL of the option based on whether it is a Call or a Put.
 ///
 /// ## Example
 ///
@@ -17,14 +16,15 @@ use super::errors::PriceError;
 /// use quant_core::payoffs::errors::PriceError;
 ///
 /// # fn main() -> Result<(), PriceError> {
-/// let call = BasicOption::new(300.0, 250.0, CallPutCategory::Call)?;
+/// let call = BasicOption::build(300.0, 250.0, 10.0, CallPutCategory::Call)?;
 ///
 /// assert_eq!(call.payoff(), 50.0);
+/// assert_eq!(call.pnl(), 40.0);
 ///
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BasicOption {
     pub spot_price: f64,
     pub strike_price: f64,
@@ -52,7 +52,7 @@ impl BasicOption {
             return Err(PriceError::SpotPriceNegative(spot_price));
         }
 
-        if spot_price <= 0.0 || strike_price <= 0.0 {
+        if strike_price <= 0.0 {
             return Err(PriceError::StrikePriceNegative);
         }
 
@@ -65,19 +65,18 @@ impl BasicOption {
     }
 
     /// Computes the option's payoff at expiration.
+    #[inline]
     pub fn payoff(&self) -> f64 {
         match self.category {
-            CallPutCategory::Call => (self.spot_price - self.strike_price).max(0.),
-            CallPutCategory::Put => (self.strike_price - self.spot_price).max(0.),
+            CallPutCategory::Call => (self.spot_price - self.strike_price).max(0.0),
+            CallPutCategory::Put => (self.strike_price - self.spot_price).max(0.0),
         }
     }
 
+    /// Computes the option's Profit and Loss (PnL) at expiration.
+    #[inline]
     pub fn pnl(&self) -> f64 {
-        let payoff = self.payoff();
-        match self.category {
-            CallPutCategory::Call => payoff - self.prime,
-            CallPutCategory::Put => payoff + self.strike_price,
-        }
+        self.payoff() - self.prime
     }
 }
 
@@ -87,9 +86,9 @@ mod tests {
 
     #[test]
     fn test_create_option() {
-        let spot_price = 100.;
-        let strike_price = 10.;
-        let prime = 3.;
+        let spot_price = 100.0;
+        let strike_price = 10.0;
+        let prime = 3.0;
         let category = CallPutCategory::Call;
 
         let basic_option = BasicOption::build(spot_price, strike_price, prime, category).unwrap();
@@ -100,25 +99,25 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_create_option_invalid_spot_price() {
-        let spot_price = -100.;
-        let strike_price = 10.;
-        let prime = 3.;
+        let spot_price = -100.0;
+        let strike_price = 10.0;
+        let prime = 3.0;
         let category = CallPutCategory::Call;
 
         let _basic_option = BasicOption::build(spot_price, strike_price, prime, category).unwrap();
     }
 
     #[test]
-    fn test_payoff() {
-        let spot_price = 100.;
-        let strike_price = 10.;
-        let prime = 3.;
-        let category = CallPutCategory::Call;
+    fn test_payoff_and_pnl_call() {
+        let call = BasicOption::build(100.0, 90.0, 3.0, CallPutCategory::Call).unwrap();
+        assert_eq!(call.payoff(), 10.0);
+        assert_eq!(call.pnl(), 7.0);
+    }
 
-        let basic_option = BasicOption::build(spot_price, strike_price, prime, category).unwrap();
-
-        let payoff = basic_option.payoff();
-
-        assert_eq!(payoff, 90.);
+    #[test]
+    fn test_payoff_and_pnl_put() {
+        let put = BasicOption::build(80.0, 100.0, 4.0, CallPutCategory::Put).unwrap();
+        assert_eq!(put.payoff(), 20.0);
+        assert_eq!(put.pnl(), 16.0);
     }
 }

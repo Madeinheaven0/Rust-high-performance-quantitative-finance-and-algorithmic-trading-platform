@@ -1,23 +1,25 @@
-pub mod cli;
-pub mod payoffs;
+mod cli;
+mod bench;
+mod payoffs;
 
+use anyhow::{Context, Result};
+use clap::Parser;
 use crate::cli::{Cli, Strategy};
 use crate::payoffs::basics::BasicOption;
-use crate::payoffs::errors::PriceError;
 use crate::payoffs::range_bound::{IronButterfly, IronCondor};
 use crate::payoffs::spread::{BearSpread, BullSpread};
 use crate::payoffs::volatility::{Straddle, Strangle};
-use clap::Parser;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
     let cli = Cli::parse();
-
     run(cli)?;
-
     Ok(())
 }
 
-fn run(cli: Cli) -> Result<(), PriceError> {
+fn run(cli: Cli) -> Result<()> {
+    tracing::info!("Executing options payoff evaluation");
+
     match cli.strategy {
         Strategy::SimpleOption {
             spot,
@@ -25,25 +27,24 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             prime,
             category,
         } => {
-            let claim =
-                BasicOption::build(spot, strike, prime, category).expect("Something went wrong");
+            let claim = BasicOption::build(spot, strike, prime, category)
+                .with_context(|| "Failed to build SimpleOption")?;
             let payoff = claim.payoff();
             let pnl = claim.pnl();
 
-            println!(
-                "The option:\n
-                        - The spot: {},\n\
-                        - The strike: {}, \n\
-                        - The prime: {}, \n\
-                        - The type: {:?}",
-                claim.spot_price, claim.strike_price, prime, claim.category
+            tracing::info!(
+                spot = claim.spot_price,
+                strike = claim.strike_price,
+                prime = prime,
+                category = ?claim.category,
+                "Built SimpleOption"
             );
 
-            println!("The payoff type: {}", payoff);
-            println!("The pnl: {}", pnl);
-
+            println!("Payoff: {}", payoff);
+            println!("PnL: {}", pnl);
             Ok(())
         }
+
         Strategy::BullSpread {
             spot,
             strike_up,
@@ -52,24 +53,26 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             prime_down,
             category,
         } => {
-            let claim =
-                BullSpread::build(spot, strike_down, strike_up, prime_up, prime_down, category)
-                    .expect("Something went wrong");
-            let payoff = claim.payoff();
-            let pnl = claim.pnl();
+            // Note: build expects (strike_down, strike_up, prime_down, prime_up, category)
+            let claim = BullSpread::build(strike_down, strike_up, prime_down, prime_up, category)
+                .with_context(|| "Failed to build BullSpread")?;
+            let payoff = claim
+                .payoff(spot)
+                .with_context(|| "Failed to compute BullSpread payoff")?;
+            let pnl = claim
+                .pnl(spot)
+                .with_context(|| "Failed to compute BullSpread PnL")?;
 
-            println!(
-                "The BullSpread:\n\
-                    - The spot: {}, \n\
-                    - The strike-up: {},\n
-                    - The strike-down: {},\n
-                    - The type: {:?}",
-                claim.spot_price, claim.strike_up, claim.strike_up, claim.category
+            tracing::info!(
+                spot = spot,
+                strike_down = claim.strike_down,
+                strike_up = claim.strike_up,
+                category = ?claim.category,
+                "Built BullSpread"
             );
 
-            println!("The payoff: {:?}", payoff);
-            println!("The pnl: {:?}", pnl);
-
+            println!("Payoff: {}", payoff);
+            println!("PnL: {}", pnl);
             Ok(())
         }
 
@@ -81,24 +84,26 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             prime_down,
             category,
         } => {
-            let claim =
-                BearSpread::build(spot, strike_down, strike_up, prime_up, prime_down, category)
-                    .expect("Something went wrong");
-            let payoff = claim.payoff();
-            let pnl = claim.pnl();
+            // Note: build expects (strike_down, strike_up, prime_down, prime_up, category)
+            let claim = BearSpread::build(strike_down, strike_up, prime_down, prime_up, category)
+                .with_context(|| "Failed to build BearSpread")?;
+            let payoff = claim
+                .payoff(spot)
+                .with_context(|| "Failed to compute BearSpread payoff")?;
+            let pnl = claim
+                .pnl(spot)
+                .with_context(|| "Failed to compute BearSpread PnL")?;
 
-            println!(
-                "The BearSpread:\n\
-                    - The spot: {}, \n\
-                    - The strike-up: {},\n
-                    - The strike-down: {},\n
-                    - The type: {:?}",
-                claim.spot_price, claim.strike_up, claim.strike_up, claim.category
+            tracing::info!(
+                spot = spot,
+                strike_down = claim.strike_down,
+                strike_up = claim.strike_up,
+                category = ?claim.category,
+                "Built BearSpread"
             );
 
-            println!("The payoff: {}", payoff);
-            println!("The pnl: {}", pnl);
-
+            println!("Payoff: {}", payoff);
+            println!("PnL: {}", pnl);
             Ok(())
         }
 
@@ -110,21 +115,19 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             category,
         } => {
             let claim = Straddle::build(spot, strike, call_prime, put_prime, category)
-                .expect("Something went wrong");
+                .with_context(|| "Failed to build Straddle")?;
             let payoff = claim.payoff();
             let pnl = claim.pnl();
 
-            println!(
-                "The Straddle:\n
-                    - The spot: {}, \n
-                    - The strike: {},\n
-                    - The type: {:?}",
-                claim.spot_price, claim.strike_price, claim.category
+            tracing::info!(
+                spot = claim.spot_price,
+                strike = claim.strike_price,
+                category = ?claim.category,
+                "Built Straddle"
             );
 
-            println!("The payoff: {}", payoff);
-            println!("The pnl: {}", pnl);
-
+            println!("Payoff: {}", payoff);
+            println!("PnL: {}", pnl);
             Ok(())
         }
 
@@ -136,115 +139,107 @@ fn run(cli: Cli) -> Result<(), PriceError> {
             put_prime,
             category,
         } => {
-            let claim = Strangle::build(
-                spot,
-                strike_down,
-                strike_up,
-                call_prime,
-                put_prime,
-                category,
-            )
-            .expect("Something went wrong");
+            let claim =
+                Strangle::build(spot, strike_down, strike_up, call_prime, put_prime, category)
+                    .with_context(|| "Failed to build Strangle")?;
             let payoff = claim.payoff();
             let pnl = claim.pnl();
 
-            println!(
-                "The Strangle:\n\
-                    - The spot: {}, \n\
-                    - The strike-up: {},\n
-                    - The strike-down: {},\n
-                    - The type: {:?}",
-                claim.spot_price, claim.strike_up, claim.strike_up, claim.category
+            tracing::info!(
+                spot = claim.spot_price,
+                strike_down = claim.strike_down,
+                strike_up = claim.strike_up,
+                category = ?claim.category,
+                "Built Strangle"
             );
 
-            println!("The payoff: {}", payoff);
-            println!("The pnl: {}", pnl);
-
-            Ok(())
-        }
-
-        Strategy::IronButterfly {
-            spot,
-            strike_up,
-            strike_main,
-            strike_down,
-            main_call_prime,
-            main_put_prime,
-            down_prime,
-            up_prime,
-        } => {
-            let claim = IronButterfly::build(
-                spot,
-                strike_main,
-                strike_down,
-                strike_up,
-                main_call_prime,
-                main_put_prime,
-                down_prime,
-                up_prime,
-            )
-            .expect("Something went wrong");
-            let payoff = claim.payoff();
-            let pnl = claim.pnl();
-
-            println!(
-                "The IronButterfly:\n\
-                    - The spot: {}, \n\
-                    - The strike up: {},\n
-                    - The main: {},\n
-                    - The strike down: {}",
-                claim.spot_price, claim.strike_up, claim.main_strike, claim.strike_down
-            );
-
-            println!("The payoff: {:?}", payoff);
-            println!("The pnl: {}", pnl);
-
+            println!("Payoff: {}", payoff);
+            println!("PnL: {}", pnl);
             Ok(())
         }
 
         Strategy::IronCondor {
             spot,
-            strike_down1,
-            strike_up1,
-            strike_down2,
-            strike_up2,
-            call_prime1,
-            call_prime2,
-            put_prime1,
-            put_prime2,
+            strike_k1,
+            strike_k2,
+            strike_k3,
+            strike_k4,
+            put_prime_1,
+            put_prime_2,
+            call_prime_1,
+            call_prime_2,
         } => {
-            let claim = IronCondor::build(
-                spot,
-                strike_down1,
-                strike_up1,
-                strike_down2,
-                strike_up2,
-                call_prime1,
-                call_prime2,
-                put_prime1,
-                put_prime2,
+            // Matches IronCondor::new(K1, p1, K2, p2, K3, c3, K4, c4)
+            let claim = IronCondor::new(
+                strike_k1,
+                put_prime_1,
+                strike_k2,
+                put_prime_2,
+                strike_k3,
+                call_prime_1,
+                strike_k4,
+                call_prime_2,
             )
-            .expect("Something went wrong");
-            let payoff = claim.payoff();
-            let pnl = claim.pnl();
+                .with_context(|| "Failed to build IronCondor")?;
 
-            println!(
-                "The IronButterfly:\n\
-                    - The spot: {}, \n\
-                    - The strike-down1: {},\n
-                    - The strike-up1: {},\n
-                    - The strike-down2: {}\n\
-                    - The strike-up2: {}",
-                claim.spot_price,
-                claim.strike_down1,
-                claim.strike_up1,
-                claim.strike_down2,
-                claim.strike_up2
+            let payoff = claim.payoff_at(spot);
+            let pnl = claim.pnl_at(spot);
+
+            tracing::info!(
+                spot = spot,
+                k1 = claim.put_buy.strike,
+                k2 = claim.put_sell.strike,
+                k3 = claim.call_sell.strike,
+                k4 = claim.call_buy.strike,
+                net_premium = claim.net_premium(),
+                "Built IronCondor"
             );
 
-            println!("The payoff: {:?}", payoff);
-            println!("The pnl: {}", pnl);
+            println!("Payoff: {}", payoff);
+            println!("PnL: {}", pnl);
+            Ok(())
+        }
 
+        Strategy::IronButterfly {
+            spot,
+            strike_main,
+            strike_down,
+            strike_up,
+            main_call_prime,
+            main_put_prime,
+            down_prime,
+            up_prime,
+        } => {
+            // Matches IronButterfly::new(
+            //   strike_put_buy, premium_put_buy,
+            //   strike_atm, premium_put_sell, premium_call_sell,
+            //   strike_call_buy, premium_call_buy
+            // )
+            let claim = IronButterfly::new(
+                strike_down,   // K1 - Long Put
+                down_prime,    // premium Long Put
+                strike_main,   // K2 - ATM
+                main_put_prime,// premium Short Put
+                main_call_prime,// premium Short Call
+                strike_up,     // K3 - Long Call
+                up_prime,      // premium Long Call
+            )
+                .with_context(|| "Failed to build IronButterfly")?;
+
+            let payoff = claim.payoff_at(spot);
+            let pnl = claim.pnl_at(spot);
+
+            tracing::info!(
+                spot = spot,
+                k_down = claim.put_buy.strike,
+                k_atm = claim.atm_put_sell.strike,
+                k_up = claim.call_buy.strike,
+                net_premium = claim.net_premium(),
+                "Built IronButterfly"
+            );
+
+            println!("Payoff: {}", payoff);
+            println!("PnL: {}", pnl);
             Ok(())
         }
     }

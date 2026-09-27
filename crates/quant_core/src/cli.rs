@@ -1,180 +1,180 @@
-use crate::payoffs::categorical_options::{CallPutCategory, LongShortCategory};
 use clap::{Parser, Subcommand};
+use crate::payoffs::categorical_options::{CallPutCategory, LongShortCategory};
 
-/// # The structure of the Command line
+// -----------------------------------------------------------------------------
+// Main CLI Structure
+// -----------------------------------------------------------------------------
+/// Command-line structure for options payoff evaluation
 #[derive(Parser, Debug)]
-#[clap(
+#[command(
+    name = "payoff",
     author,
     version,
-    about,
-    long_about = "The structure of the command line of payoff"
+    about = "CLI tool for simulating and calculating financial option payoffs",
+    long_about = "Evaluates profit and loss (payoff) profiles for various option trading strategies at maturity."
 )]
-#[command(name = "payoff")]
 pub struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub strategy: Strategy,
 }
 
-/// ## The Subcommand Strategy and their structure
+// -----------------------------------------------------------------------------
+// Strategy Subcommands
+// -----------------------------------------------------------------------------
+/// Supported option trading strategies
 #[derive(Subcommand, Debug)]
 pub enum Strategy {
-    /// ### The simplest strategy that exists
+    /// Single option payoff (Call or Put)
     SimpleOption {
-        /// The spot price of the option
-        #[clap(short = 's', long)]
+        /// Current spot price of the underlying asset
+        #[arg(short = 's', long)]
         spot: f64,
-        /// The strike of the option
-        #[clap(short = 'k', long)]
+        /// Strike price of the option
+        #[arg(short = 'k', long)]
         strike: f64,
-        /// The price of the option
-        #[clap(short = 'p', long)]
+        /// Option premium (price paid or received)
+        #[arg(short = 'p', long)]
         prime: f64,
-        /// The type of the option: Call or Put
-        #[clap(short = 'c', long)]
+        /// Option type: call or put
+        #[arg(short = 'c', long, value_enum)]
         category: CallPutCategory,
     },
-
-    /// ### Command line's structure of a Bull spread strategy
+    /// Bull Spread strategy (Bull Call Spread or Bull Put Spread)
     BullSpread {
-        /// The spot price
-        #[clap(short = 's', long)]
+        /// Current spot price of the underlying asset
+        #[arg(short = 's', long)]
         spot: f64,
-        /// The strike of the highest option
-        #[clap(short = 'u', long)]
+        /// Upper strike price (K_up)
+        #[arg(short = 'u', long = "strike-up")]
         strike_up: f64,
-        /// The strike of the lowest option
-        #[clap(short = 'd', long)]
+        /// Lower strike price (K_down)
+        #[arg(short = 'd', long = "strike-down")]
         strike_down: f64,
-        /// The category of the BullSpread: BullCallSpread (Call) or BullPutSpread (Put)
-        #[clap(short, long)]
+        /// Spread type: call (Bull Call Spread) or put (Bull Put Spread)
+        #[arg(short = 'c', long, value_enum)]
         category: CallPutCategory,
-        /// The prime of the option with the greatest strike
-        #[clap(long)]
+        /// Premium of the option with the higher strike (K_up)
+        #[arg(long = "prime-up")]
         prime_up: f64,
-        /// The prime of the option with the lowest strike
-        #[clap(long)]
+        /// Premium of the option with the lower strike (K_down)
+        #[arg(long = "prime-down")]
         prime_down: f64,
     },
-
-    /// ### Command line's structure of a Bear spread strategy
+    /// Bear Spread strategy (Bear Call Spread or Bear Put Spread)
     BearSpread {
-        /// The spot price
-        #[clap(short = 's', long)]
+        /// Current spot price of the underlying asset
+        #[arg(short = 's', long)]
         spot: f64,
-        #[clap(short = 'u', long)]
-        /// The strike of the highest option
+        /// Upper strike price (K_up)
+        #[arg(short = 'u', long = "strike-up")]
         strike_up: f64,
-        /// The strike of the lowest option
-        #[clap(short = 'd', long)]
+        /// Lower strike price (K_down)
+        #[arg(short = 'd', long = "strike-down")]
         strike_down: f64,
-        /// The category of the BullSpread: BearCallSpread (Call) or BearPutSpread (Put)
-        #[clap(short = 'c', long)]
+        /// Spread type: call (Bear Call Spread) or put (Bear Put Spread)
+        #[arg(short = 'c', long, value_enum)]
         category: CallPutCategory,
-        /// The prime of the option with the greatest strike
-        #[clap(long)]
+        /// Premium of the option with the higher strike (K_up)
+        #[arg(long = "prime-up")]
         prime_up: f64,
-        /// The prime of the option with the lowest strike
-        #[clap(long)]
+        /// Premium of the option with the lower strike (K_down)
+        #[arg(long = "prime-down")]
         prime_down: f64,
     },
-
-    /// ### Command line's structure of a straddle
+    /// Straddle strategy (Simultaneous Call and Put at the same strike)
     Straddle {
-        /// The spot price
-        #[clap(short = 's', long)]
+        /// Current spot price of the underlying asset
+        #[arg(short = 's', long)]
         spot: f64,
-        /// The strike of the option
-        #[clap(short = 'k', long)]
+        /// Shared strike price for both Call and Put
+        #[arg(short = 'k', long)]
         strike: f64,
-        /// The prime of the call
-        #[clap(long)]
+        /// Call option premium
+        #[arg(long = "call-prime")]
         call_prime: f64,
-        /// The prime of the put
-        #[clap(long)]
+        /// Put option premium
+        #[arg(long = "put-prime")]
         put_prime: f64,
-        /// The category of the Straddle: Long straddle (Long) Short Straddle (Short)
-        #[clap(short = 'c', long)]
+        /// Straddle position: long or short
+        #[arg(short = 'c', long, value_enum)]
         category: LongShortCategory,
     },
-
-    /// ### Command line's structure of a strangle
+    /// Strangle strategy (OTM Put and OTM Call at different strike prices)
     Strangle {
-        /// The spot price
-        #[clap(short = 's', long)]
+        /// Current spot price of the underlying asset
+        #[arg(short = 's', long)]
         spot: f64,
-        /// The highest strike
-        #[clap(short = 'u', long)]
+        /// Higher strike price (Call)
+        #[arg(short = 'u', long = "strike-up")]
         strike_up: f64,
-        /// The lowest strike
-        #[clap(short = 'd', long)]
+        /// Lower strike price (Put)
+        #[arg(short = 'd', long = "strike-down")]
         strike_down: f64,
-        /// The prime of the call
-        #[clap(short, long)]
+        /// Call option premium (strike_up)
+        #[arg(long = "call-prime")]
         call_prime: f64,
-        /// The prime of the put
-        #[clap(long)]
+        /// Put option premium (strike_down)
+        #[arg(long = "put-prime")]
         put_prime: f64,
-        /// The category of the Strangle: Long strangle (Long) Short Strangle (Short)
-        #[clap(short = 'c', long)]
+        /// Strangle position: long or short
+        #[arg(short = 'c', long, value_enum)]
         category: LongShortCategory,
     },
-
-    /// ### Command line's structure of an iron condor
+    /// Iron Condor strategy (Combination of Bull Put Spread and Bear Call Spread)
     IronCondor {
-        /// The spot price
-        #[clap(short, long)]
+        /// Current spot price of the underlying asset
+        #[arg(short = 's', long)]
         spot: f64,
-        /// The strike of the lowest option of the bull spread
-        #[clap(short, long)]
-        strike_down1: f64,
-        /// The strike of the highest option of the bull spread
-        #[clap(short, long)]
-        strike_up1: f64,
-        /// The strike of the lowest option of the bear spread
-        #[clap(short, long)]
-        strike_down2: f64,
-        /// The strike of the highest option of the bear spread
-        #[clap(short, long)]
-        strike_up2: f64,
-        /// The prime of the call with the lowest strike
-        #[clap(short, long)]
-        call_prime1: f64,
-        /// The prime of the call with the highest strike
-        #[clap(short, long)]
-        call_prime2: f64,
-        /// The prime of the put the lowest strike
-        #[clap(short, long)]
-        put_prime1: f64,
-        /// The prime of the put the highest strike
-        #[clap(short, long)]
-        put_prime2: f64,
+        /// Strike K1 (Long Put - lowest strike)
+        #[arg(long = "k1")]
+        strike_k1: f64,
+        /// Strike K2 (Short Put)
+        #[arg(long = "k2")]
+        strike_k2: f64,
+        /// Strike K3 (Short Call)
+        #[arg(long = "k3")]
+        strike_k3: f64,
+        /// Strike K4 (Long Call - highest strike)
+        #[arg(long = "k4")]
+        strike_k4: f64,
+        /// Premium of the Put at strike K1
+        #[arg(long = "p1")]
+        put_prime_1: f64,
+        /// Premium of the Put at strike K2
+        #[arg(long = "p2")]
+        put_prime_2: f64,
+        /// Premium of the Call at strike K3
+        #[arg(long = "c3")]
+        call_prime_1: f64,
+        /// Premium of the Call at strike K4
+        #[arg(long = "c4")]
+        call_prime_2: f64,
     },
-
-    /// The command line's structure of the Iron butterfly
+    /// Iron Butterfly strategy (Short Straddle bounded by protective Long Put and Long Call)
     IronButterfly {
-        /// The spot price
-        #[clap(short = 's', long)]
+        /// Current spot price of the underlying asset
+        #[arg(short = 's', long)]
         spot: f64,
-        /// The main strike price
-        #[clap(short = 'm', long)]
+        /// Central strike price (K_main / ATM)
+        #[arg(short = 'm', long = "strike-main")]
         strike_main: f64,
-        /// The strike of the lowest option
-        #[clap(short = 'd', long)]
+        /// Lower strike price (K_down - Long Put)
+        #[arg(short = 'd', long = "strike-down")]
         strike_down: f64,
-        /// The strike of the highest option
-        #[clap(short = 'u', long)]
+        /// Upper strike price (K_up - Long Call)
+        #[arg(short = 'u', long = "strike-up")]
         strike_up: f64,
-        /// The prime of the call with the main strike
-        #[clap(short, long)]
+        /// Call premium at the central strike
+        #[arg(long = "main-call-prime")]
         main_call_prime: f64,
-        /// The prime of the put with the main strike
-        #[clap(short, long)]
+        /// Put premium at the central strike
+        #[arg(long = "main-put-prime")]
         main_put_prime: f64,
-        /// The prime of the put option (the lowest strike)
-        #[clap(short, long)]
+        /// Put premium at the lower strike (K_down)
+        #[arg(long = "down-prime")]
         down_prime: f64,
-        /// The prime of the call option (the highest strike)
-        #[clap(short, long)]
+        /// Call premium at the upper strike (K_up)
+        #[arg(long = "up-prime")]
         up_prime: f64,
     },
 }
