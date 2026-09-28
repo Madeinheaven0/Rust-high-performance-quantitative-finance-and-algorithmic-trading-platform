@@ -5,7 +5,7 @@ use tracing_subscriber::prelude::*;
 use tracing;
 use crate::payoffs::basics::BasicOption;
 use crate::{payoffs::spread, payoffs::volatility, payoffs::range_bound, };
-use crate::payoffs::categorical_options;
+use crate::payoffs::domain_types;
 
 const N: usize = 10000;
 fn main() {

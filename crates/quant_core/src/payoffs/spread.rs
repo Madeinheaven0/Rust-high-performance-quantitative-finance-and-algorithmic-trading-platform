@@ -1,225 +1,538 @@
-//! # The advanced options strategies for Bullish and Bearish market
-//! All the structuration and computation for the payoff of advanced strategies used for Bearish or Bullish market (Bull and Bear Spread)
+//! # Strategies used when we have a trend
 
-use super::categorical_options::CallPutCategory;
-use super::errors::PriceError;
+use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
+use crate::payoffs::errors::StrategyError;
+use crate::payoffs::leg::OptionLeg;
 
-/// The structure representing a Bull Spread strategy (Bull Call or Bull Put)
-pub struct BullSpread {
-    pub strike_down: f64,
-    pub strike_up: f64,
-    pub prime_down: f64,
-    pub prime_up: f64,
-    pub category: CallPutCategory,
+/// The basic structure of a Spread
+#[derive(Debug, PartialEq, Clone)]
+struct VerticalSpread {
+    legs: [OptionLeg; 2],
 }
 
-/// The structure representing a Bear Spread strategy (Bear Call or Bear Put)
-pub struct BearSpread {
-    pub strike_down: f64,
-    pub strike_up: f64,
-    pub prime_down: f64,
-    pub prime_up: f64,
-    pub category: CallPutCategory,
-}
-
-impl BullSpread {
-    /// Create a new `BullSpread`
-    ///
-    /// # Errors
-    /// Returns an error if strikes or primes are negative or if `strike_down >= strike_up`.
-    pub fn build(
-        strike_down: impl Into<f64>,
-        strike_up: impl Into<f64>,
-        prime_down: impl Into<f64>,
-        prime_up: impl Into<f64>,
-        category: CallPutCategory,
-    ) -> Result<Self, PriceError> {
-        let strike_down = strike_down.into();
-        let strike_up = strike_up.into();
-        let prime_down = prime_down.into();
-        let prime_up = prime_up.into();
-
-        if strike_down <= 0.0 || strike_up <= 0.0 {
-            return Err(PriceError::StrikePriceNegative);
+impl VerticalSpread {
+    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        if spot.0 <= 0.0 {
+            return Err(StrategyError::InvalidSpot(spot.0));
         }
 
-        if strike_down >= strike_up {
-            return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
-        }
-
-        if prime_down <= 0.0 || prime_up <= 0.0 {
-            return Err(PriceError::PrimePriceError);
-        }
-
-        Ok(Self {
-            strike_down,
-            strike_up,
-            prime_down,
-            prime_up,
-            category,
-        })
+        Ok(self
+            .legs
+            .iter()
+            .map(|leg| leg.payoff(spot).unwrap())
+            .sum::<f64>())
     }
 
-    /// Computes the option strategy payoff at expiration given a spot price.
-    pub fn payoff(&self, spot_price: f64) -> Result<f64, PriceError> {
-        if spot_price <= 0.0 {
-            return Err(PriceError::SpotPriceNegative(spot_price));
+    pub fn credit(&self) -> f64 {
+        self.legs.iter().map(|leg| leg.credit()).sum::<f64>()
+    }
+
+    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        Ok(self
+            .legs
+            .iter()
+            .map(|leg| leg.pnl(spot).unwrap())
+            .sum::<f64>())
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct BullCallSpread(VerticalSpread);
+
+impl BullCallSpread {
+    pub fn build(
+        strike_up: Strike,
+        strike_down: Strike,
+        premium_up: Premium,
+        premium_down: Premium,
+        position: Position,
+    ) -> Result<Self, StrategyError> {
+        if strike_up.0 <= strike_down.0 {
+            return Err(StrategyError::InvalidSpreadStrikes {
+                strike_up: strike_up.0,
+                strike_down: strike_down.0,
+            });
         }
 
-        let payoff = match self.category {
-            CallPutCategory::Call => {
-                let first_payoff = (spot_price - self.strike_down).max(0.0);
-                let second_payoff = (spot_price - self.strike_up).max(0.0);
-                first_payoff - second_payoff
-            }
-            CallPutCategory::Put => {
-                let first_payoff = (self.strike_down - spot_price).max(0.0);
-                let second_payoff = (self.strike_up - spot_price).max(0.0);
-                first_payoff - second_payoff
-            }
+        let short_position = match position {
+            Position::Long => Position::Short,
+            Position::Short => Position::Long,
         };
 
-        Ok(payoff)
+        let long_leg = OptionLeg::build(OptionKind::Call, position, strike_down, premium_down)?;
+
+        let short_leg = OptionLeg::build(OptionKind::Call, short_position, strike_up, premium_up)?;
+
+        Ok(Self(VerticalSpread {
+            legs: [long_leg, short_leg],
+        }))
     }
 
-    /// Computes the total profit and loss (PnL) including initial net premium.
-    pub fn pnl(&self, spot_price: f64) -> Result<f64, PriceError> {
-        let payoff = self.payoff(spot_price)?;
-        Ok(payoff + self.prime_up - self.prime_down)
+    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.payoff(spot)
+    }
+
+    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.pnl(spot)
     }
 }
 
-impl BearSpread {
-    /// Create a new `BearSpread`
-    ///
-    /// # Errors
-    /// Returns an error if strikes or primes are negative or if `strike_down >= strike_up`.
+pub struct BullPutSpread(VerticalSpread);
+
+impl BullPutSpread {
     pub fn build(
-        strike_down: impl Into<f64>,
-        strike_up: impl Into<f64>,
-        prime_down: impl Into<f64>,
-        prime_up: impl Into<f64>,
-        category: CallPutCategory,
-    ) -> Result<Self, PriceError> {
-        let strike_down = strike_down.into();
-        let strike_up = strike_up.into();
-        let prime_down = prime_down.into();
-        let prime_up = prime_up.into();
-
-        if strike_down <= 0.0 || strike_up <= 0.0 {
-            return Err(PriceError::StrikePriceNegative);
+        strike_up: Strike,
+        strike_down: Strike,
+        premium_up: Premium,
+        premium_down: Premium,
+        position: Position,
+    ) -> Result<Self, StrategyError> {
+        if strike_up.0 <= strike_down.0 {
+            return Err(StrategyError::InvalidSpreadStrikes {
+                strike_up: strike_up.0,
+                strike_down: strike_down.0,
+            });
         }
 
-        if strike_down >= strike_up {
-            return Err(PriceError::StrikeConfigurationError(strike_down, strike_up));
-        }
-
-        if prime_down <= 0.0 || prime_up <= 0.0 {
-            return Err(PriceError::PrimePriceError);
-        }
-
-        Ok(Self {
-            strike_down,
-            strike_up,
-            prime_down,
-            prime_up,
-            category,
-        })
-    }
-
-    /// Computes the option strategy payoff at expiration given a spot price.
-    pub fn payoff(&self, spot_price: f64) -> Result<f64, PriceError> {
-        if spot_price <= 0.0 {
-            return Err(PriceError::SpotPriceNegative(spot_price));
-        }
-
-        let payoff = match self.category {
-            CallPutCategory::Call => {
-                let first_payoff = (spot_price - self.strike_down).max(0.0);
-                let second_payoff = (spot_price - self.strike_up).max(0.0);
-                second_payoff - first_payoff
-            }
-            CallPutCategory::Put => {
-                let first_payoff = (self.strike_down - spot_price).max(0.0);
-                let second_payoff = (self.strike_up - spot_price).max(0.0);
-                second_payoff - first_payoff
-            }
+        let short_position = match position {
+            Position::Long => Position::Short,
+            Position::Short => Position::Long,
         };
 
-        Ok(payoff)
+        let long_leg = OptionLeg::build(OptionKind::Put, position, strike_up, premium_up)?;
+
+        let short_leg =
+            OptionLeg::build(OptionKind::Put, short_position, strike_down, premium_down)?;
+
+        Ok(Self(VerticalSpread {
+            legs: [long_leg, short_leg],
+        }))
     }
 
-    /// Computes the total profit and loss (PnL) including initial net premium.
-    pub fn pnl(&self, spot_price: f64) -> Result<f64, PriceError> {
-        let payoff = self.payoff(spot_price)?;
-        Ok(payoff - self.prime_up + self.prime_down)
+    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.payoff(spot)
+    }
+
+    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.pnl(spot)
+    }
+}
+pub struct BearCallSpread(VerticalSpread);
+
+impl BearCallSpread {
+    pub fn build(
+        strike_up: Strike,
+        strike_down: Strike,
+        premium_up: Premium,
+        premium_down: Premium,
+        position: Position,
+    ) -> Result<Self, StrategyError> {
+        if strike_up.0 <= strike_down.0 {
+            return Err(StrategyError::InvalidSpreadStrikes {
+                strike_up: strike_up.0,
+                strike_down: strike_down.0,
+            });
+        }
+
+        let short_position = match position {
+            Position::Long => Position::Short,
+            Position::Short => Position::Long,
+        };
+
+        let long_leg = OptionLeg::build(OptionKind::Call, position, strike_up, premium_up)?;
+
+        let short_leg =
+            OptionLeg::build(OptionKind::Call, short_position, strike_down, premium_down)?;
+
+        Ok(Self(VerticalSpread {
+            legs: [long_leg, short_leg],
+        }))
+    }
+
+    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.payoff(spot)
+    }
+
+    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.pnl(spot)
+    }
+}
+
+struct BearPutSpread(VerticalSpread);
+
+impl BearPutSpread {
+    pub fn build(
+        strike_up: Strike,
+        strike_down: Strike,
+        premium_up: Premium,
+        premium_down: Premium,
+        position: Position,
+    ) -> Result<Self, StrategyError> {
+        if strike_up.0 <= strike_down.0 {
+            return Err(StrategyError::InvalidSpreadStrikes {
+                strike_up: strike_up.0,
+                strike_down: strike_down.0,
+            });
+        }
+
+        let short_position = match position {
+            Position::Long => Position::Short,
+            Position::Short => Position::Long,
+        };
+
+        let long_leg = OptionLeg::build(OptionKind::Put, position, strike_up, premium_up)?;
+
+        let short_leg = OptionLeg::build(OptionKind::Put, short_position, strike_down, premium_down)?;
+
+        Ok(Self(VerticalSpread {
+            legs: [long_leg, short_leg],
+        }))
+    }
+
+    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.payoff(spot)
+    }
+
+    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.pnl(spot)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::{fixture, rstest};
 
     #[test]
-    fn test_create_bull_spread() {
-        let strike_down = 10.0;
-        let strike_up = 20.0;
-        let prime_down = 10.0;
-        let prime_up = 10.0;
-        let category = CallPutCategory::Call;
+    fn test_bull_spread() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(7.0);
+        let premium_down = Premium(10.0);
+        let position = Position::Long;
+        let kind = OptionKind::Call;
 
-        let option = BullSpread::build(
-            strike_down,
-            strike_up,
-            prime_down,
-            prime_up,
-            category.clone(),
-        )
-            .unwrap();
+        let bull_spread =
+            BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
-        assert_eq!(option.strike_down, strike_down);
-        assert_eq!(option.category, category);
+        assert!(bull_spread.is_ok());
+
+        let bull_spread = bull_spread.unwrap();
+
+        assert_eq!(bull_spread.0.legs[0].strike, strike_down);
+        assert_eq!(bull_spread.0.legs[1].strike, strike_up);
+        assert_eq!(bull_spread.0.legs[0].premium, premium_down);
+        assert_eq!(bull_spread.0.legs[1].premium, premium_up);
     }
 
     #[test]
-    fn test_payoff_bull_call() {
-        let spot_price = 90.0;
-        let strike_down = 20.0;
-        let strike_up = 90.0;
-        let prime_down = 10.0;
-        let prime_up = 10.0;
-        let category = CallPutCategory::Call;
+    fn test_bull_spread_invalid_strike() {
+        let strike_up = Strike(-100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+        let kind = OptionKind::Call;
 
-        let option = BullSpread::build(
-            strike_down,
-            strike_up,
-            prime_down,
-            prime_up,
-            category,
-        )
-            .unwrap();
+        let bull_spread =
+            BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
-        assert_eq!(option.payoff(spot_price).unwrap(), 70.0);
+        assert!(bull_spread.is_err());
     }
 
     #[test]
-    fn test_payoff_bear_call_spread() {
-        let spot_price = 70.0;
-        let strike_down = 20.0;
-        let strike_up = 90.0;
-        let prime_down = 10.0;
-        let prime_up = 10.0;
-        let category = CallPutCategory::Call;
+    fn test_bull_spread_invalid_premium() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(-10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+        let kind = OptionKind::Call;
 
-        let option = BearSpread::build(
-            strike_down,
+        let bull_spread =
+            BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
+
+        assert!(bull_spread.is_err());
+    }
+
+    #[fixture]
+    fn bull_spread() -> BullCallSpread {
+        let strike_up = Strike(110.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
+    }
+
+    #[rstest]
+    #[case(Spot(100.), 30.0)]
+    #[case(Spot(70.0), 0.)]
+    #[case(Spot(120.0), 40.)]
+    fn test_bull_spread_payoff(
+        bull_spread: BullCallSpread,
+        #[case] spot: Spot,
+        #[case] expected: f64,
+    ) {
+        assert_eq!(bull_spread.payoff(spot).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_build_bear_spread() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        let bear_spread =
+            BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
+
+        assert!(bear_spread.is_ok());
+
+        let bear_spread = bear_spread.unwrap();
+
+        assert_eq!(bear_spread.0.legs[0].strike, strike_up);
+        assert_eq!(bear_spread.0.legs[1].strike, strike_down);
+        assert_eq!(bear_spread.0.legs[0].premium, premium_up);
+        assert_eq!(bear_spread.0.legs[1].premium, premium_down);
+    }
+
+    #[test]
+    fn test_build_bear_spread_invalid_premium() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(-10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+        let kind = OptionKind::Call;
+
+        let bear_spread =
+            BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
+
+        assert!(bear_spread.is_err());
+    }
+
+    #[test]
+    fn test_build_bear_spread_invalid_strike() {
+        let strike_up = Strike(-100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+        let kind = OptionKind::Call;
+
+        let bear_spread =
+            BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
+
+        assert!(bear_spread.is_err());
+    }
+
+    #[fixture]
+    fn bear_call() -> BearCallSpread {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
+    }
+
+    #[rstest]
+    #[case(Spot(100.), -30.0)]
+    #[case(Spot(70.0), 0.)]
+    #[case(Spot(120.0), -30.)]
+    fn test_bear_call_spread_payoff(
+        bear_call: BearCallSpread,
+        #[case] spot: Spot,
+        #[case] expected: f64,
+    ) {
+        let payoff_res = bear_call.payoff(spot).unwrap();
+        let pnl_res = bear_call.pnl(spot).unwrap();
+        eprintln!(
+            "Spot: {:?} | Payoff obtenu: {} | PnL obtenu: {} | Attendu: {}",
+            spot, payoff_res, pnl_res, expected
+        );
+        assert_eq!(bear_call.payoff(spot).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_build_bull_put_spread() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        let bull_put_spread = BullPutSpread::build(
             strike_up,
-            prime_down,
-            prime_up,
-            category,
-        )
-            .unwrap();
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        );
 
-        assert_eq!(option.payoff(spot_price).unwrap(), -50.0);
+        assert!(bull_put_spread.is_ok());
+
+        let bull_put_spread = bull_put_spread.unwrap();
+
+        assert_eq!(bull_put_spread.0.legs[0].strike, strike_up);
+        assert_eq!(bull_put_spread.0.legs[1].strike, strike_down);
+        assert_eq!(bull_put_spread.0.legs[0].premium, premium_up);
+        assert_eq!(bull_put_spread.0.legs[1].premium, premium_down);
+    }
+
+    #[test]
+    fn test_build_bull_put_spread_invalid_premium() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(-7.0);
+        let position = Position::Long;
+
+        let bull_put_spread = BullPutSpread::build(
+            strike_up,
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        );
+
+        assert!(bull_put_spread.is_err());
+    }
+
+    #[test]
+    fn test_build_bull_put_spread_invalid_strike() {
+        let strike_up = Strike(-100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(7.0);
+        let premium_down = Premium(10.0);
+        let position = Position::Long;
+
+        let bull_put_spread = BullPutSpread::build(
+            strike_up,
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        );
+
+        assert!(bull_put_spread.is_err());
+    }
+
+    #[fixture]
+    fn bull_put_spread() -> BullPutSpread {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(7.0);
+        let premium_down = Premium(10.0);
+        let position = Position::Long;
+
+        BullPutSpread::build(
+            strike_up,
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        ).unwrap()
+    }
+
+    #[rstest]
+    #[case(Spot(100.), 0.0)]
+    #[case(Spot(70.0), 30.)]
+    #[case(Spot(120.0), 0.)]
+    fn test_bull_put_spread_payoff(bull_put_spread: BullPutSpread, #[case] spot: Spot, #[case] expected: f64) {
+        assert_eq!(bull_put_spread.payoff(spot).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_bear_put_spread_build() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        let bear_put_spread = BearPutSpread::build(
+            strike_up,
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        );
+
+        assert!(bear_put_spread.is_ok());
+
+        let bear_put_spread = bear_put_spread.unwrap();
+
+        assert_eq!(bear_put_spread.0.legs[0].strike, strike_up);
+        assert_eq!(bear_put_spread.0.legs[1].strike, strike_down);
+        assert_eq!(bear_put_spread.0.legs[0].premium, premium_up);
+        assert_eq!(bear_put_spread.0.legs[1].premium, premium_down);
+    }
+
+    #[test]
+    fn test_build_bear_put_spread_build_invalid_premium() {
+        let strike_up = Strike(100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(-10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        let bear_put_spread = BearPutSpread::build(
+            strike_up,
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        );
+
+        assert!(bear_put_spread.is_err());
+    }
+
+    #[test]
+    fn test_build_bear_put_spread_build_invalid_strike() {
+        let strike_up = Strike(-100.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        let bear_put_spread = BearPutSpread::build(
+            strike_up,
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        );
+
+        assert!(bear_put_spread.is_err());
+    }
+
+    #[fixture]
+    fn bear_put_spread() -> BearPutSpread {
+        let strike_up = Strike(110.0);
+        let strike_down = Strike(70.0);
+        let premium_up = Premium(10.0);
+        let premium_down = Premium(7.0);
+        let position = Position::Long;
+
+        BearPutSpread::build(
+            strike_up,
+            strike_down,
+            premium_up,
+            premium_down,
+            position,
+        ).unwrap()
+    }
+
+    #[rstest]
+    #[case(Spot(100.), 10.0)]
+    #[case(Spot(70.0), 40.0)]
+    #[case(Spot(120.0), 0.0)]
+    fn test_bear_put_spread_payoff(bear_put_spread: BearPutSpread, #[case] spot: Spot, #[case] expected: f64) {
+        assert_eq!(bear_put_spread.payoff(spot).unwrap(), expected);
     }
 }
