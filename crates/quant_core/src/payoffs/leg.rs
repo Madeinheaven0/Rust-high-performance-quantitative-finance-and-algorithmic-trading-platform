@@ -67,14 +67,10 @@ impl OptionLeg {
     }
 
     pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-        let intrinsic = self.payoff(spot)?;
 
-        let coefficient = match self.position {
-            Position::Long => 1.0,
-            Position::Short => -1.0,
-        };
+        let payoff = self.payoff(spot)?;
 
-        Ok((intrinsic * coefficient) + self.credit())
+        Ok(payoff + self.credit())
     }
 }
 

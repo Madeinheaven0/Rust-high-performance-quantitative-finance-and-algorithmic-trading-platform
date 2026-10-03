@@ -117,6 +117,7 @@ impl BullPutSpread {
         self.0.pnl(spot)
     }
 }
+
 pub struct BearCallSpread(VerticalSpread);
 
 impl BearCallSpread {
@@ -158,7 +159,7 @@ impl BearCallSpread {
     }
 }
 
-struct BearPutSpread(VerticalSpread);
+pub struct BearPutSpread(VerticalSpread);
 
 impl BearPutSpread {
     pub fn build(
@@ -182,7 +183,8 @@ impl BearPutSpread {
 
         let long_leg = OptionLeg::build(OptionKind::Put, position, strike_up, premium_up)?;
 
-        let short_leg = OptionLeg::build(OptionKind::Put, short_position, strike_down, premium_down)?;
+        let short_leg =
+            OptionLeg::build(OptionKind::Put, short_position, strike_down, premium_down)?;
 
         Ok(Self(VerticalSpread {
             legs: [long_leg, short_leg],
@@ -366,13 +368,8 @@ mod tests {
         let premium_down = Premium(7.0);
         let position = Position::Long;
 
-        let bull_put_spread = BullPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        );
+        let bull_put_spread =
+            BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
         assert!(bull_put_spread.is_ok());
 
@@ -392,13 +389,8 @@ mod tests {
         let premium_down = Premium(-7.0);
         let position = Position::Long;
 
-        let bull_put_spread = BullPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        );
+        let bull_put_spread =
+            BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
         assert!(bull_put_spread.is_err());
     }
@@ -411,13 +403,8 @@ mod tests {
         let premium_down = Premium(10.0);
         let position = Position::Long;
 
-        let bull_put_spread = BullPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        );
+        let bull_put_spread =
+            BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
         assert!(bull_put_spread.is_err());
     }
@@ -430,20 +417,18 @@ mod tests {
         let premium_down = Premium(10.0);
         let position = Position::Long;
 
-        BullPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        ).unwrap()
+        BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
     }
 
     #[rstest]
     #[case(Spot(100.), 0.0)]
     #[case(Spot(70.0), 30.)]
     #[case(Spot(120.0), 0.)]
-    fn test_bull_put_spread_payoff(bull_put_spread: BullPutSpread, #[case] spot: Spot, #[case] expected: f64) {
+    fn test_bull_put_spread_payoff(
+        bull_put_spread: BullPutSpread,
+        #[case] spot: Spot,
+        #[case] expected: f64,
+    ) {
         assert_eq!(bull_put_spread.payoff(spot).unwrap(), expected);
     }
 
@@ -455,13 +440,8 @@ mod tests {
         let premium_down = Premium(7.0);
         let position = Position::Long;
 
-        let bear_put_spread = BearPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        );
+        let bear_put_spread =
+            BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
         assert!(bear_put_spread.is_ok());
 
@@ -481,13 +461,8 @@ mod tests {
         let premium_down = Premium(7.0);
         let position = Position::Long;
 
-        let bear_put_spread = BearPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        );
+        let bear_put_spread =
+            BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
         assert!(bear_put_spread.is_err());
     }
@@ -500,13 +475,8 @@ mod tests {
         let premium_down = Premium(7.0);
         let position = Position::Long;
 
-        let bear_put_spread = BearPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        );
+        let bear_put_spread =
+            BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
         assert!(bear_put_spread.is_err());
     }
@@ -519,20 +489,20 @@ mod tests {
         let premium_down = Premium(7.0);
         let position = Position::Long;
 
-        BearPutSpread::build(
-            strike_up,
-            strike_down,
-            premium_up,
-            premium_down,
-            position,
-        ).unwrap()
+        BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
     }
 
     #[rstest]
     #[case(Spot(100.), 10.0)]
     #[case(Spot(70.0), 40.0)]
     #[case(Spot(120.0), 0.0)]
-    fn test_bear_put_spread_payoff(bear_put_spread: BearPutSpread, #[case] spot: Spot, #[case] expected: f64) {
+    fn test_bear_put_spread_payoff(
+        bear_put_spread: BearPutSpread,
+        #[case] spot: Spot,
+        #[case] expected: f64,
+    ) {
         assert_eq!(bear_put_spread.payoff(spot).unwrap(), expected);
     }
 }
+
+

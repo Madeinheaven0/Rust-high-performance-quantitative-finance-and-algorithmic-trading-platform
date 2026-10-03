@@ -6,7 +6,7 @@ use crate::payoffs::errors::StrategyError;
 use crate::payoffs::leg::OptionLeg;
 
 ///
-pub struct  Straddle {
+pub struct Straddle {
     pub legs: [OptionLeg; 2],
 }
 
@@ -15,7 +15,7 @@ impl Straddle {
         strike: Strike,
         call_premium: Premium,
         put_premium: Premium,
-        position: Position
+        position: Position,
     ) -> Result<Self, StrategyError> {
         if strike.0 <= 0. {
             return Err(StrategyError::InvalidStrike(strike.0));
@@ -31,46 +31,24 @@ impl Straddle {
 
         match position {
             Position::Long => {
-                let call_option = OptionLeg::build(
-                    OptionKind::Call,
-                    position,
-                    strike,
-                    call_premium
-                )?;
+                let call_option =
+                    OptionLeg::build(OptionKind::Call, position, strike, call_premium)?;
 
-                let put_option = OptionLeg::build(
-                    OptionKind::Put,
-                    position,
-                    strike,
-                    put_premium
-                )?;
+                let put_option = OptionLeg::build(OptionKind::Put, position, strike, put_premium)?;
 
-                Ok(
-                    Self {
-                        legs: [call_option, put_option],
-                    }
-                )
-            },
+                Ok(Self {
+                    legs: [call_option, put_option],
+                })
+            }
             Position::Short => {
-                let call_option = OptionLeg::build(
-                    OptionKind::Call,
-                    position,
-                    strike,
-                    call_premium,
-                )?;
+                let call_option =
+                    OptionLeg::build(OptionKind::Call, position, strike, call_premium)?;
 
-                let put_option = OptionLeg::build(
-                    OptionKind::Put,
-                    position,
-                    strike,
-                    put_premium,
-                )?;
+                let put_option = OptionLeg::build(OptionKind::Put, position, strike, put_premium)?;
 
-                Ok(
-                    Self {
-                        legs: [call_option, put_option],
-                    }
-                )
+                Ok(Self {
+                    legs: [call_option, put_option],
+                })
             }
         }
     }
@@ -80,14 +58,13 @@ impl Straddle {
     }
 
     pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-       Ok(self.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
+        Ok(self.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
     }
 
     pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         Ok(self.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
     }
 }
-
 
 pub struct Strangle {
     legs: [OptionLeg; 2],
@@ -99,7 +76,7 @@ impl Strangle {
         call_premium: Premium,
         put_strike: Strike,
         put_premium: Premium,
-        position: Position
+        position: Position,
     ) -> Result<Self, StrategyError> {
         if call_strike.0 <= 0. {
             return Err(StrategyError::InvalidStrike(call_strike.0));
@@ -121,52 +98,32 @@ impl Strangle {
             return Err(StrategyError::InvalidStrangleStrikes {
                 call_strike: call_strike.0,
                 put_strike: put_strike.0,
-            })
+            });
         }
 
         match position {
             Position::Long => {
-                let call_option = OptionLeg::build(
-                    OptionKind::Call,
-                    position,
-                    call_strike,
-                    call_premium
-                )?;
+                let call_option =
+                    OptionLeg::build(OptionKind::Call, position, call_strike, call_premium)?;
 
-                let put_option = OptionLeg::build(
-                    OptionKind::Put,
-                    position,
-                    put_strike,
-                    put_premium
-                )?;
+                let put_option =
+                    OptionLeg::build(OptionKind::Put, position, put_strike, put_premium)?;
 
-                Ok(
-                    Self {
-                        legs: [call_option, put_option],
-                    }
-                )
-            },
+                Ok(Self {
+                    legs: [call_option, put_option],
+                })
+            }
 
             Position::Short => {
-                let call_option = OptionLeg::build(
-                    OptionKind::Call,
-                    position,
-                    call_strike,
-                    call_premium
-                )?;
+                let call_option =
+                    OptionLeg::build(OptionKind::Call, position, call_strike, call_premium)?;
 
-                let put_option = OptionLeg::build(
-                    OptionKind::Put,
-                    position,
-                    put_strike,
-                    put_premium
-                )?;
+                let put_option =
+                    OptionLeg::build(OptionKind::Put, position, put_strike, put_premium)?;
 
-                Ok(
-                    Self {
-                        legs: [call_option, put_option],
-                    }
-                )
+                Ok(Self {
+                    legs: [call_option, put_option],
+                })
             }
         }
     }
@@ -197,12 +154,7 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        let straddle = Straddle::build(
-            strike,
-            call_premium,
-            put_premium,
-            position
-        );
+        let straddle = Straddle::build(strike, call_premium, put_premium, position);
 
         assert!(straddle.is_ok());
 
@@ -221,12 +173,7 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        let straddle = Straddle::build(
-            strike,
-            call_premium,
-            put_premium,
-            position
-        );
+        let straddle = Straddle::build(strike, call_premium, put_premium, position);
 
         assert!(straddle.is_err());
     }
@@ -238,12 +185,7 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        let straddle = Straddle::build(
-            strike,
-            call_premium,
-            put_premium,
-            position
-        );
+        let straddle = Straddle::build(strike, call_premium, put_premium, position);
 
         assert!(straddle.is_err());
     }
@@ -255,12 +197,7 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        Straddle::build(
-            strike,
-            call_premium,
-            put_premium,
-            position
-        ).unwrap()
+        Straddle::build(strike, call_premium, put_premium, position).unwrap()
     }
 
     #[rstest]
@@ -268,7 +205,11 @@ mod tests {
     #[case(Spot(100.), 0.)]
     #[case(Spot(120.), 20.)]
     #[case(Spot(150.), 50.)]
-    fn test_straddle_payoff(straddle_test: Straddle, #[case] spot: Spot, #[case] expected_value: f64) {
+    fn test_straddle_payoff(
+        straddle_test: Straddle,
+        #[case] spot: Spot,
+        #[case] expected_value: f64,
+    ) {
         assert_eq!(straddle_test.payoff(spot).unwrap(), expected_value);
     }
 
@@ -289,13 +230,8 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        let strangle = Strangle::build(
-            call_strike,
-            call_premium,
-            put_strike,
-            put_premium,
-            position
-        );
+        let strangle =
+            Strangle::build(call_strike, call_premium, put_strike, put_premium, position);
 
         assert!(strangle.is_ok());
 
@@ -317,13 +253,8 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        let _strangle = Strangle::build(
-            call_strike,
-            call_premium,
-            put_strike,
-            put_premium,
-            position
-        ).unwrap();
+        let _strangle =
+            Strangle::build(call_strike, call_premium, put_strike, put_premium, position).unwrap();
     }
 
     #[test]
@@ -335,13 +266,8 @@ mod tests {
         let put_premium = Premium(-8.);
         let position = Position::Long;
 
-        let _strangle = Strangle::build(
-            call_strike,
-            call_premium,
-            put_strike,
-            put_premium,
-            position
-        ).unwrap();
+        let _strangle =
+            Strangle::build(call_strike, call_premium, put_strike, put_premium, position).unwrap();
     }
 
     #[fixture]
@@ -352,13 +278,7 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        Strangle::build(
-            call_strike,
-            call_premium,
-            put_strike,
-            put_premium,
-            position
-        ).unwrap()
+        Strangle::build(call_strike, call_premium, put_strike, put_premium, position).unwrap()
     }
 
     #[rstest]
@@ -366,7 +286,11 @@ mod tests {
     #[case(Spot(100.), 0.)]
     #[case(Spot(120.), 20.)]
     #[case(Spot(150.), 50.)]
-    fn test_strangle_payoff(strangle_test: Strangle, #[case] spot: Spot ,#[case] expected_value: f64) {
+    fn test_strangle_payoff(
+        strangle_test: Strangle,
+        #[case] spot: Spot,
+        #[case] expected_value: f64,
+    ) {
         assert_eq!(strangle_test.payoff(spot).unwrap(), expected_value);
     }
 
@@ -375,7 +299,7 @@ mod tests {
     #[case(Spot(100.), -18.)]
     #[case(Spot(120.), 2.)]
     #[case(Spot(150.), 32.)]
-    fn test_strangle_pnl(strangle_test: Strangle, #[case] spot: Spot ,#[case] expected_value: f64) {
+    fn test_strangle_pnl(strangle_test: Strangle, #[case] spot: Spot, #[case] expected_value: f64) {
         assert_eq!(strangle_test.pnl(spot).unwrap(), expected_value);
     }
 
@@ -387,16 +311,8 @@ mod tests {
         let put_premium = Premium(8.);
         let position = Position::Long;
 
-        let _strangle = Strangle::build(
-            call_strike,
-            call_premium,
-            put_strike,
-            put_premium,
-            position
-        );
+        let _strangle =
+            Strangle::build(call_strike, call_premium, put_strike, put_premium, position);
         assert!(_strangle.is_err());
     }
 }
-
-
-
