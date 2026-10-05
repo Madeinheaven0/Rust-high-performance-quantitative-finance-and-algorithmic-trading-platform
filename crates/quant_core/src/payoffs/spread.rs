@@ -1,10 +1,10 @@
 //! # Strategies used when we have a trend
 
 use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
-use crate::payoffs::errors::StrategyError;
+use crate::errors::StrategyError;
 use crate::payoffs::leg::OptionLeg;
 
-/// The basic structure of a Spread
+/// ## The basic structure of a Spread
 #[derive(Debug, PartialEq, Clone)]
 struct VerticalSpread {
     legs: [OptionLeg; 2],
@@ -504,5 +504,3 @@ mod tests {
         assert_eq!(bear_put_spread.payoff(spot).unwrap(), expected);
     }
 }
-
-

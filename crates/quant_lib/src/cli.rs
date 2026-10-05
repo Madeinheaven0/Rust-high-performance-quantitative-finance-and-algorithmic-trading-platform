@@ -1,5 +1,6 @@
-use clap::{Parser, Command, Subcommand, ValueEnum};
-use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
+use clap::{Parser, Subcommand};
+use quant_core::payoffs::domain_types::OptionKind;
+use quant_core::payoffs::domain_types::Position;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -8,18 +9,17 @@ pub struct Cli {
     pub strategy: Strategy,
 }
 
-
 #[derive(Subcommand, Debug)]
 pub enum Strategy {
     /// The simple option strategies (Call or Put)
     Basic {
         /// The type of the option (Call or Put)
         #[clap(value_enum)]
-        #[arg(long, short='k')]
+        #[arg(long, short = 'k')]
         kind: OptionKind,
         /// The side (Long or Short)
         #[clap(value_enum)]
-        #[arg(long, short='p')]
+        #[arg(long, short = 'p')]
         position: Position,
         /// The strike
         #[arg(long)]
@@ -28,81 +28,81 @@ pub enum Strategy {
         #[arg(long)]
         premium: f64,
         /// The price of the asset
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
     },
 
     BullCallSpread {
-        #[arg(long, short='u')]
+        #[arg(long, short = 'u')]
         strike_up: f64,
         /// The premium of the option with the highest strike
         #[arg(long)]
         premium_up: f64,
         /// The lowest option strategy strike
-        #[arg(long, short='d')]
+        #[arg(long, short = 'd')]
         strike_down: f64,
         /// The premium of the option with the lowest strike
         #[arg(long)]
         premium_down: f64,
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
     },
 
     BullPutSpread {
         /// The highest option strategy strike
-        #[arg(long, short='u')]
+        #[arg(long, short = 'u')]
         strike_up: f64,
         /// The premium of the option with the highest strike
         #[arg(long)]
         premium_up: f64,
         /// The lowest option strategy strike
-        #[arg(long, short='d')]
+        #[arg(long, short = 'd')]
         strike_down: f64,
         /// The premium of the option with the lowest strike
         #[arg(long)]
         premium_down: f64,
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
     },
 
     BearCallSpread {
         /// The highest option strategy strike
-        #[arg(long, short='u')]
+        #[arg(long, short = 'u')]
         strike_up: f64,
         /// The premium of the option with the highest strike
         #[arg(long)]
         premium_up: f64,
         /// The lowest option strategy strike
-        #[arg(long, short='d')]
+        #[arg(long, short = 'd')]
         strike_down: f64,
         /// The premium of the option with the lowest strike
         #[arg(long)]
         premium_down: f64,
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
     },
 
     BearPutSpread {
         /// The highest option strategy strike
-        #[arg(long, short='u')]
+        #[arg(long, short = 'u')]
         strike_up: f64,
         /// The premium of the option with the highest strike
         #[arg(long)]
         premium_up: f64,
         /// The lowest option strategy strike
-        #[arg(long, short='d')]
+        #[arg(long, short = 'd')]
         strike_down: f64,
         /// The premium of the option with the lowest strike
         #[arg(long)]
         premium_down: f64,
         /// The price of the asset
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
     },
 
     Straddle {
         /// The unique strike
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         strike: f64,
         /// The premium of the call
         #[arg(long)]
@@ -112,11 +112,11 @@ pub enum Strategy {
         put_premium: f64,
         /// The position (Long or Short)
         #[clap(value_enum)]
-        #[arg(long, short='p')]
+        #[arg(long, short = 'p')]
         position: Position,
         /// The price of the asset
-        #[arg(long, short='s')]
-        spot: f64
+        #[arg(long, short = 's')]
+        spot: f64,
     },
 
     Strangle {
@@ -137,8 +137,8 @@ pub enum Strategy {
         #[arg(long)]
         position: Position,
         /// The price of the asset
-        #[arg(long, short='s')]
-        spot: f64
+        #[arg(long, short = 's')]
+        spot: f64,
     },
 
     IronCondor {
@@ -167,8 +167,8 @@ pub enum Strategy {
         #[arg(long)]
         long_call_premium: f64,
         /// The price of the asset
-        #[arg(long, short='s')]
-        spot: f64
+        #[arg(long, short = 's')]
+        spot: f64,
     },
 
     IronButterfly {
@@ -195,6 +195,6 @@ pub enum Strategy {
         long_call_premium: f64,
         /// The price of the asset
         #[arg(long)]
-        spot: f64
-    }
+        spot: f64,
+    },
 }

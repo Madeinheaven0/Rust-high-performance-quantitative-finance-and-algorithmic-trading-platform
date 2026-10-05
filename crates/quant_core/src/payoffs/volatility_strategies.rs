@@ -2,7 +2,7 @@
 //!
 
 use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
-use crate::payoffs::errors::StrategyError;
+use crate::errors::StrategyError;
 use crate::payoffs::leg::OptionLeg;
 
 ///
@@ -145,7 +145,6 @@ impl Strangle {
 mod tests {
     use super::*;
     use rstest::{fixture, rstest};
-    use serde::de::Unexpected::Str;
 
     #[test]
     fn test_build_straddle() {

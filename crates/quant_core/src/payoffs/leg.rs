@@ -1,7 +1,7 @@
 //! # The fundamental constituent cell.
 
 use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
-use crate::payoffs::errors::StrategyError;
+use crate::errors::StrategyError;
 
 /// Describe the structure of an option
 #[derive(Debug, PartialEq, Clone)]
@@ -67,7 +67,6 @@ impl OptionLeg {
     }
 
     pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-
         let payoff = self.payoff(spot)?;
 
         Ok(payoff + self.credit())

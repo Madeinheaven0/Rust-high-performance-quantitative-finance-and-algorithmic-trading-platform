@@ -1,25 +1,26 @@
-//! The Module in the range period
+//! # The Module for the strategies use when the market is in range
 
 use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
-use crate::payoffs::errors::StrategyError;
+use crate::errors::StrategyError;
 use crate::payoffs::leg::OptionLeg;
 
+/// # The Basic Structure of a Iron Strategy
 pub struct Iron {
     pub legs: [OptionLeg; 4],
 }
 
 impl Iron {
-        pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-            Ok(self.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
-        }
+    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        Ok(self.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
+    }
 
-        pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-            Ok(self.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
-        }
+    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        Ok(self.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
+    }
 }
 
+/// ## The Iron Condor Structure
 pub struct IronCondor(Iron);
-
 
 impl IronCondor {
     pub fn build(
@@ -114,7 +115,12 @@ impl IronCondor {
     }
 
     pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.0.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
+        Ok(self
+            .0
+            .legs
+            .iter()
+            .map(|leg| leg.payoff(spot).unwrap())
+            .sum())
     }
 
     pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
@@ -122,7 +128,7 @@ impl IronCondor {
     }
 }
 
-
+/// The Iron Butterfly Structure
 pub struct IronButterfly(Iron);
 
 impl IronButterfly {
@@ -157,7 +163,8 @@ impl IronButterfly {
             return Err(StrategyError::InvalidPremium(long_call_premium.0));
         }
 
-        let iron_butterfly_assertion = long_put_strike.0 < short_strike.0 && short_strike.0 < long_call_strike.0;
+        let iron_butterfly_assertion =
+            long_put_strike.0 < short_strike.0 && short_strike.0 < long_call_strike.0;
 
         if !iron_butterfly_assertion {
             return Err(StrategyError::InvalidIronButterflyStrikes {
@@ -210,14 +217,18 @@ impl IronButterfly {
     }
 
     pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.0.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
+        Ok(self
+            .0
+            .legs
+            .iter()
+            .map(|leg| leg.payoff(spot).unwrap())
+            .sum())
     }
 
     pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         Ok(self.0.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -351,7 +362,8 @@ mod tests {
             short_call_premium,
             long_call_strike,
             long_call_premium,
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[rstest]
@@ -489,7 +501,8 @@ mod tests {
             short_call_premium,
             long_call_strike,
             long_call_premium,
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[rstest]
@@ -497,7 +510,11 @@ mod tests {
     #[case(Spot(100.), -10.)]
     #[case(Spot(120.), -10.)]
     #[case(Spot(150.), -10.)]
-    fn test_iron_butterfly_payoff(iron_butterfly: IronButterfly, #[case] spot: Spot, #[case] expected: f64) {
+    fn test_iron_butterfly_payoff(
+        iron_butterfly: IronButterfly,
+        #[case] spot: Spot,
+        #[case] expected: f64,
+    ) {
         assert_eq!(iron_butterfly.payoff(spot).unwrap(), expected);
     }
 
@@ -506,7 +523,11 @@ mod tests {
     #[case(Spot(100.), -10.)]
     #[case(Spot(120.), -10.)]
     #[case(Spot(150.), -10.)]
-    fn test_iron_butterfly_pnl(iron_butterfly: IronButterfly, #[case] spot: Spot, #[case] expected: f64) {
+    fn test_iron_butterfly_pnl(
+        iron_butterfly: IronButterfly,
+        #[case] spot: Spot,
+        #[case] expected: f64,
+    ) {
         assert_eq!(iron_butterfly.pnl(spot).unwrap(), expected);
     }
 }

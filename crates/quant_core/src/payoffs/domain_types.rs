@@ -1,6 +1,6 @@
 //! # The fundamentals type used in the quant_core crate
 
-use crate::payoffs::errors::StrategyError;
+use crate::errors::StrategyError;
 use clap::ValueEnum;
 
 /// The option's type
