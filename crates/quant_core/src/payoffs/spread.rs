@@ -4,35 +4,37 @@ use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
 use crate::errors::StrategyError;
 use crate::payoffs::leg::OptionLeg;
 
+/// ## The trait of the spread strategies
+pub trait SpreadStrategy {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError>;
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError>;
+}
+
 /// ## The basic structure of a Spread
 #[derive(Debug, PartialEq, Clone)]
 struct VerticalSpread {
     legs: [OptionLeg; 2],
 }
 
-impl VerticalSpread {
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+impl SpreadStrategy for VerticalSpread {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
         if spot.0 <= 0.0 {
             return Err(StrategyError::InvalidSpot(spot.0));
         }
 
-        Ok(self
-            .legs
+        self.legs
             .iter()
-            .map(|leg| leg.payoff(spot).unwrap())
-            .sum::<f64>())
+            .try_fold(0.0, |acc, leg| {
+                Ok(acc + leg.payoff(spot)?)
+            })
     }
 
-    pub fn credit(&self) -> f64 {
-        self.legs.iter().map(|leg| leg.credit()).sum::<f64>()
-    }
-
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self
-            .legs
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.legs
             .iter()
-            .map(|leg| leg.pnl(spot).unwrap())
-            .sum::<f64>())
+            .try_fold(0.0, |acc, leg| {
+                Ok(acc + leg.pnl(spot)?)
+            })
     }
 }
 
@@ -67,12 +69,14 @@ impl BullCallSpread {
             legs: [long_leg, short_leg],
         }))
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+impl SpreadStrategy for BullCallSpread {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.payoff(spot)
     }
 
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.pnl(spot)
     }
 }
@@ -108,12 +112,14 @@ impl BullPutSpread {
             legs: [long_leg, short_leg],
         }))
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+impl SpreadStrategy for BullPutSpread {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.payoff(spot)
     }
 
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.pnl(spot)
     }
 }
@@ -149,12 +155,15 @@ impl BearCallSpread {
             legs: [long_leg, short_leg],
         }))
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+
+impl SpreadStrategy for BearCallSpread {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.payoff(spot)
     }
 
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.pnl(spot)
     }
 }
@@ -190,12 +199,14 @@ impl BearPutSpread {
             legs: [long_leg, short_leg],
         }))
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+impl SpreadStrategy for BearPutSpread {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.payoff(spot)
     }
 
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.pnl(spot)
     }
 }
@@ -203,6 +214,7 @@ impl BearPutSpread {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::SpreadStrategy;
     use rstest::{fixture, rstest};
 
     #[test]
@@ -212,7 +224,6 @@ mod tests {
         let premium_up = Premium(7.0);
         let premium_down = Premium(10.0);
         let position = Position::Long;
-        let kind = OptionKind::Call;
 
         let bull_spread =
             BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -234,7 +245,6 @@ mod tests {
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
         let position = Position::Long;
-        let kind = OptionKind::Call;
 
         let bull_spread =
             BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -249,8 +259,6 @@ mod tests {
         let premium_up = Premium(-10.0);
         let premium_down = Premium(7.0);
         let position = Position::Long;
-        let kind = OptionKind::Call;
-
         let bull_spread =
             BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
@@ -308,8 +316,7 @@ mod tests {
         let premium_up = Premium(-10.0);
         let premium_down = Premium(7.0);
         let position = Position::Long;
-        let kind = OptionKind::Call;
-
+        
         let bear_spread =
             BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
@@ -323,7 +330,6 @@ mod tests {
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
         let position = Position::Long;
-        let kind = OptionKind::Call;
 
         let bear_spread =
             BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);

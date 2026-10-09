@@ -1,14 +1,22 @@
-//!
-//!
+//! # Thd module for the option's strategies when the market is on range
 
 use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
 use crate::errors::StrategyError;
 use crate::payoffs::leg::OptionLeg;
 
-///
+
+/// The trait implemented by the range strategies
+pub trait VolatilityStrategy {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError>;
+
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError>;
+}
+
+/// The structure of a straddle' s strategy
 pub struct Straddle {
     pub legs: [OptionLeg; 2],
 }
+
 
 impl Straddle {
     pub fn build(
@@ -56,16 +64,31 @@ impl Straddle {
     pub fn credit(&self) -> f64 {
         self.legs[0].credit() + self.legs[1].credit()
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
+impl VolatilityStrategy for Straddle {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        if spot.0 <= 0.0 {
+            return Err(StrategyError::InvalidSpot(spot.0));
+        }
+
+        self.legs
+        .iter()
+            .try_fold(0., |acc, leg| {
+                Ok(acc + leg.payoff(spot)?)
+            })
     }
 
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.legs
+        .iter()
+            .try_fold(0., |acc, leg| {
+                Ok(acc + leg.pnl(spot)?)
+            })
     }
 }
 
+/// The structure of a strangle strategy
 pub struct Strangle {
     legs: [OptionLeg; 2],
 }
@@ -131,13 +154,27 @@ impl Strangle {
     pub fn credit(&self) -> f64 {
         self.legs[0].credit() + self.legs[1].credit()
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
+impl VolatilityStrategy for Strangle {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        if spot.0 <= 0. {
+            return Err(StrategyError::InvalidSpot(spot.0));
+        }
+
+        self.legs
+        .iter()
+            .try_fold(0.0, |acc, leg| {
+                Ok(acc + leg.payoff(spot)?)
+            })
     }
 
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.legs
+        .iter()
+            .try_fold(0.0, |acc, leg| {
+                Ok(acc + leg.pnl(spot)?)
+            })
     }
 }
 

@@ -4,18 +4,39 @@ use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
 use crate::errors::StrategyError;
 use crate::payoffs::leg::OptionLeg;
 
+pub trait RangeStrategy {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError>;
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError>;
+}
+
 /// # The Basic Structure of a Iron Strategy
 pub struct Iron {
     pub legs: [OptionLeg; 4],
 }
 
-impl Iron {
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.legs.iter().map(|leg| leg.payoff(spot).unwrap()).sum())
+impl RangeStrategy for Iron {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        if spot.0 <= 0.0 {
+            return Err(StrategyError::InvalidSpot(spot.0));
+        }
+
+        self.legs
+            .iter()
+            .try_fold(
+            0.0, |acc, leg| {
+                    Ok(acc + leg.payoff(spot)?)
+                }
+        )
     }
 
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.legs
+        .iter()
+        .try_fold(
+            0.0, |acc, leg| {
+                Ok(acc + leg.pnl(spot)?)
+            }
+        )
     }
 }
 
@@ -113,18 +134,15 @@ impl IronCondor {
     pub fn credit(&self) -> f64 {
         self.0.legs.iter().map(|leg| leg.credit()).sum()
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self
-            .0
-            .legs
-            .iter()
-            .map(|leg| leg.payoff(spot).unwrap())
-            .sum())
+impl RangeStrategy for IronCondor {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.payoff(spot)
     }
-
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.0.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
+    
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.pnl(spot)
     }
 }
 
@@ -215,18 +233,15 @@ impl IronButterfly {
     pub fn credit(&self) -> f64 {
         self.0.legs.iter().map(|leg| leg.credit()).sum()
     }
+}
 
-    pub fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self
-            .0
-            .legs
-            .iter()
-            .map(|leg| leg.payoff(spot).unwrap())
-            .sum())
+impl RangeStrategy for IronButterfly {
+    fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.payoff(spot)
     }
-
-    pub fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
-        Ok(self.0.legs.iter().map(|leg| leg.pnl(spot).unwrap()).sum())
+    
+    fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
+        self.0.pnl(spot)
     }
 }
 
