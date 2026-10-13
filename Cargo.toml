@@ -1,9 +1,8 @@
 [workspace]
 resolver = "2"
-members = [
+members = ["crates","crates/quant_book",
     "crates/quant_core",
     "crates/quant_exec",
-    "crates/quant_lib",
 ]
 
 [workspace.dependencies]
