@@ -1,13 +1,13 @@
 //! # The fundamental constituent cell.
 
-use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
 use crate::errors::StrategyError;
+use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
 
 /// Describe the structure of an option
 #[derive(Debug, PartialEq, Clone)]
 pub struct OptionLeg {
     pub kind: OptionKind,
-    pub position: Position,
+    pub position: Side,
     pub strike: Strike,
     pub premium: Premium,
 }
@@ -20,7 +20,7 @@ impl OptionLeg {
     /// Return an error if `strike`, `premium` or `spot` are invalid
     pub fn build(
         kind: OptionKind,
-        position: Position,
+        position: Side,
         strike: Strike,
         premium: Premium,
     ) -> Result<Self, StrategyError> {
@@ -52,17 +52,18 @@ impl OptionLeg {
         };
 
         let coefficient = match self.position {
-            Position::Long => 1.0,
-            Position::Short => -1.0,
+            Side::Long => 1.0,
+            Side::Short => -1.0,
         };
 
         Ok(intrinsic * coefficient)
     }
+
     #[inline(always)]
     pub fn credit(&self) -> f64 {
         match self.position {
-            Position::Long => -self.premium.0,
-            Position::Short => self.premium.0,
+            Side::Long => -self.premium.0,
+            Side::Short => self.premium.0,
         }
     }
 
@@ -83,7 +84,7 @@ mod tests {
         let strike = Strike(80.0);
         let premium = Premium(5.0);
         let kind = OptionKind::Call;
-        let position = Position::Long;
+        let position = Side::Long;
 
         let option_leg = OptionLeg::build(kind, position, strike, premium);
 
@@ -91,7 +92,7 @@ mod tests {
 
         let option_leg = option_leg.unwrap();
         assert_eq!(option_leg.kind, OptionKind::Call);
-        assert_eq!(option_leg.position, Position::Long);
+        assert_eq!(option_leg.position, Side::Long);
         assert_eq!(option_leg.strike, Strike(80.0));
         assert_eq!(option_leg.premium, Premium(5.0));
     }
@@ -102,7 +103,7 @@ mod tests {
         let strike = Strike(-80.0);
         let premium = Premium(5.0);
         let kind = OptionKind::Call;
-        let position = Position::Long;
+        let position = Side::Long;
 
         let _option_leg = OptionLeg::build(kind, position, strike, premium).unwrap();
     }
@@ -113,7 +114,7 @@ mod tests {
         let strike = Strike(80.0);
         let premium = Premium(-5.0);
         let kind = OptionKind::Call;
-        let position = Position::Long;
+        let position = Side::Long;
 
         let _option_leg = OptionLeg::build(kind, position, strike, premium).unwrap();
     }
@@ -121,7 +122,7 @@ mod tests {
     #[fixture]
     fn option_leg() -> OptionLeg {
         let kind = OptionKind::Call;
-        let position = Position::Long;
+        let position = Side::Long;
         let strike = Strike(80.0);
         let premium = Premium(5.0);
         OptionLeg::build(kind, position, strike, premium).unwrap()
@@ -148,7 +149,7 @@ mod tests {
         let strike = Strike(80.0);
         let premium = Premium(5.0);
         let kind = OptionKind::Call;
-        let position = Position::Long;
+        let position = Side::Long;
 
         let option_leg = OptionLeg::build(kind, position, strike, premium).unwrap();
 
@@ -162,7 +163,7 @@ mod tests {
         let strike = Strike(80.0);
         let premium = Premium(5.0);
         let kind = OptionKind::Call;
-        let position = Position::Long;
+        let position = Side::Long;
 
         let option_leg = OptionLeg::build(kind, position, strike, premium).unwrap();
 

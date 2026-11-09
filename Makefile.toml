@@ -10,7 +10,6 @@ args = ["nextest", "run", "--workspace"]
 description = "Generate doc and doctest for all the workspace"
 command = "cargo"
 args = ["doc", "--workspace", "--no-deps"]
-#args = ["test", "--doc", "--workspace"]
 
 [tasks.clippy]
 description = "Check clippy"

@@ -1,7 +1,7 @@
 //! # The Module for the strategies use when the market is in range
 
-use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
 use crate::errors::StrategyError;
+use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
 use crate::payoffs::leg::OptionLeg;
 
 pub trait RangeStrategy {
@@ -22,21 +22,13 @@ impl RangeStrategy for Iron {
 
         self.legs
             .iter()
-            .try_fold(
-            0.0, |acc, leg| {
-                    Ok(acc + leg.payoff(spot)?)
-                }
-        )
+            .try_fold(0.0, |acc, leg| Ok(acc + leg.payoff(spot)?))
     }
 
     fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.legs
-        .iter()
-        .try_fold(
-            0.0, |acc, leg| {
-                Ok(acc + leg.pnl(spot)?)
-            }
-        )
+            .iter()
+            .try_fold(0.0, |acc, leg| Ok(acc + leg.pnl(spot)?))
     }
 }
 
@@ -95,28 +87,28 @@ impl IronCondor {
 
         let long_put_option = OptionLeg::build(
             OptionKind::Put,
-            Position::Long,
+            Side::Long,
             long_put_strike,
             long_put_premium,
         )?;
 
         let short_put_option = OptionLeg::build(
             OptionKind::Put,
-            Position::Short,
+            Side::Short,
             short_put_strike,
             short_put_premium,
         )?;
 
         let short_call_option = OptionLeg::build(
             OptionKind::Call,
-            Position::Short,
+            Side::Short,
             short_call_strike,
             short_call_premium,
         )?;
 
         let long_call_option = OptionLeg::build(
             OptionKind::Call,
-            Position::Long,
+            Side::Long,
             long_call_strike,
             long_call_premium,
         )?;
@@ -140,7 +132,7 @@ impl RangeStrategy for IronCondor {
     fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.payoff(spot)
     }
-    
+
     fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.pnl(spot)
     }
@@ -194,28 +186,28 @@ impl IronButterfly {
 
         let long_put_option = OptionLeg::build(
             OptionKind::Put,
-            Position::Long,
+            Side::Long,
             long_put_strike,
             long_put_premium,
         )?;
 
         let short_put_option = OptionLeg::build(
             OptionKind::Put,
-            Position::Short,
+            Side::Short,
             short_strike,
             short_put_premium,
         )?;
 
         let short_call_option = OptionLeg::build(
             OptionKind::Call,
-            Position::Short,
+            Side::Short,
             short_strike,
             short_call_premium,
         )?;
 
         let long_call_option = OptionLeg::build(
             OptionKind::Call,
-            Position::Long,
+            Side::Long,
             long_call_strike,
             long_call_premium,
         )?;
@@ -239,7 +231,7 @@ impl RangeStrategy for IronButterfly {
     fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.payoff(spot)
     }
-    
+
     fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.0.pnl(spot)
     }

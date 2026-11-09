@@ -1,5 +1,5 @@
-use std::collections::{BTreeMap, VecDeque, HashMap};
 use std::cmp::Reverse;
+use std::collections::{BTreeMap, VecDeque};
 
 use crate::errors::BookError;
 
@@ -79,30 +79,26 @@ impl OrderBuilder {
 
         if let Some(id) = self.id {
             order.id = Id(id);
-        }
-        else {
-            return Err(BookError::IDMissing)
+        } else {
+            return Err(BookError::IDMissing);
         }
 
         if let Some(price) = self.price {
             order.price = Price(price);
-        }
-        else {
-            return Err(BookError::PriceMissing)
+        } else {
+            return Err(BookError::PriceMissing);
         }
 
         if let Some(quantity) = self.quantity {
             order.quantity = Quantity(quantity);
-        }
-        else {
-            return Err(BookError::QuantityMissing)
+        } else {
+            return Err(BookError::QuantityMissing);
         }
 
         if let Some(side) = self.side {
             order.side = side
-        }
-        else {
-            return Err(BookError::SideMissing)
+        } else {
+            return Err(BookError::SideMissing);
         }
 
         Ok(order)
@@ -179,7 +175,12 @@ impl TradeBuilder {
         let price = Price(self.price.unwrap());
         let quantity = Quantity(self.quantity.unwrap());
 
-        Ok(Trade{buyer_id, seller_id, price, quantity})
+        Ok(Trade {
+            buyer_id,
+            seller_id,
+            price,
+            quantity,
+        })
     }
 }
 

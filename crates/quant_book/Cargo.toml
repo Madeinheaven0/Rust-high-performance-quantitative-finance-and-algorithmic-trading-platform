@@ -7,3 +7,5 @@ edition = "2024"
 thiserror = {workspace = true}
 rayon = {workspace = true}
 tracing = {workspace = true}
+rstest = {workspace = true}
+proptest = {workspace = true}

@@ -1,7 +1,7 @@
 //! # Strategies used when we have a trend
 
-use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
 use crate::errors::StrategyError;
+use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
 use crate::payoffs::leg::OptionLeg;
 
 /// ## The trait of the spread strategies
@@ -24,17 +24,13 @@ impl SpreadStrategy for VerticalSpread {
 
         self.legs
             .iter()
-            .try_fold(0.0, |acc, leg| {
-                Ok(acc + leg.payoff(spot)?)
-            })
+            .try_fold(0.0, |acc, leg| Ok(acc + leg.payoff(spot)?))
     }
 
     fn pnl(&self, spot: Spot) -> Result<f64, StrategyError> {
         self.legs
             .iter()
-            .try_fold(0.0, |acc, leg| {
-                Ok(acc + leg.pnl(spot)?)
-            })
+            .try_fold(0.0, |acc, leg| Ok(acc + leg.pnl(spot)?))
     }
 }
 
@@ -47,7 +43,7 @@ impl BullCallSpread {
         strike_down: Strike,
         premium_up: Premium,
         premium_down: Premium,
-        position: Position,
+        position: Side,
     ) -> Result<Self, StrategyError> {
         if strike_up.0 <= strike_down.0 {
             return Err(StrategyError::InvalidSpreadStrikes {
@@ -57,8 +53,8 @@ impl BullCallSpread {
         }
 
         let short_position = match position {
-            Position::Long => Position::Short,
-            Position::Short => Position::Long,
+            Side::Long => Side::Short,
+            Side::Short => Side::Long,
         };
 
         let long_leg = OptionLeg::build(OptionKind::Call, position, strike_down, premium_down)?;
@@ -89,7 +85,7 @@ impl BullPutSpread {
         strike_down: Strike,
         premium_up: Premium,
         premium_down: Premium,
-        position: Position,
+        position: Side,
     ) -> Result<Self, StrategyError> {
         if strike_up.0 <= strike_down.0 {
             return Err(StrategyError::InvalidSpreadStrikes {
@@ -99,8 +95,8 @@ impl BullPutSpread {
         }
 
         let short_position = match position {
-            Position::Long => Position::Short,
-            Position::Short => Position::Long,
+            Side::Long => Side::Short,
+            Side::Short => Side::Long,
         };
 
         let long_leg = OptionLeg::build(OptionKind::Put, position, strike_up, premium_up)?;
@@ -132,7 +128,7 @@ impl BearCallSpread {
         strike_down: Strike,
         premium_up: Premium,
         premium_down: Premium,
-        position: Position,
+        position: Side,
     ) -> Result<Self, StrategyError> {
         if strike_up.0 <= strike_down.0 {
             return Err(StrategyError::InvalidSpreadStrikes {
@@ -142,8 +138,8 @@ impl BearCallSpread {
         }
 
         let short_position = match position {
-            Position::Long => Position::Short,
-            Position::Short => Position::Long,
+            Side::Long => Side::Short,
+            Side::Short => Side::Long,
         };
 
         let long_leg = OptionLeg::build(OptionKind::Call, position, strike_up, premium_up)?;
@@ -156,7 +152,6 @@ impl BearCallSpread {
         }))
     }
 }
-
 
 impl SpreadStrategy for BearCallSpread {
     fn payoff(&self, spot: Spot) -> Result<f64, StrategyError> {
@@ -176,7 +171,7 @@ impl BearPutSpread {
         strike_down: Strike,
         premium_up: Premium,
         premium_down: Premium,
-        position: Position,
+        position: Side,
     ) -> Result<Self, StrategyError> {
         if strike_up.0 <= strike_down.0 {
             return Err(StrategyError::InvalidSpreadStrikes {
@@ -186,8 +181,8 @@ impl BearPutSpread {
         }
 
         let short_position = match position {
-            Position::Long => Position::Short,
-            Position::Short => Position::Long,
+            Side::Long => Side::Short,
+            Side::Short => Side::Long,
         };
 
         let long_leg = OptionLeg::build(OptionKind::Put, position, strike_up, premium_up)?;
@@ -213,8 +208,8 @@ impl SpreadStrategy for BearPutSpread {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::SpreadStrategy;
+    use super::*;
     use rstest::{fixture, rstest};
 
     #[test]
@@ -223,7 +218,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(7.0);
         let premium_down = Premium(10.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bull_spread =
             BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -244,7 +239,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bull_spread =
             BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -258,7 +253,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(-10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
         let bull_spread =
             BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
@@ -271,7 +266,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         BullCallSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
     }
@@ -294,7 +289,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bear_spread =
             BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -315,8 +310,8 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(-10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
-        
+        let position = Side::Long;
+
         let bear_spread =
             BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
 
@@ -329,7 +324,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bear_spread =
             BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -343,7 +338,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         BearCallSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
     }
@@ -372,7 +367,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bull_put_spread =
             BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -393,7 +388,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(-7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bull_put_spread =
             BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -407,7 +402,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(7.0);
         let premium_down = Premium(10.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bull_put_spread =
             BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -421,7 +416,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(7.0);
         let premium_down = Premium(10.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         BullPutSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
     }
@@ -444,7 +439,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bear_put_spread =
             BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -465,7 +460,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(-10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bear_put_spread =
             BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -479,7 +474,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         let bear_put_spread =
             BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position);
@@ -493,7 +488,7 @@ mod tests {
         let strike_down = Strike(70.0);
         let premium_up = Premium(10.0);
         let premium_down = Premium(7.0);
-        let position = Position::Long;
+        let position = Side::Long;
 
         BearPutSpread::build(strike_up, strike_down, premium_up, premium_down, position).unwrap()
     }

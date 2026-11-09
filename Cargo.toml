@@ -1,13 +1,14 @@
 [workspace]
 resolver = "2"
-members = ["crates","crates/quant_book",
+members = [
+    "crates","crates/quant_book",
     "crates/quant_core",
     "crates/quant_exec",
 ]
 
 [workspace.dependencies]
 rand = "0.10.3"
-rstest = "0.27.0"
+rstest = "0.28.0"
 proptest = "1.11.0"
 clap = {version = "4.6.6", features = ["derive"]}
 thiserror = "2.0.20"

@@ -1,6 +1,4 @@
 //! # The fundamentals type used in the quant_core crate
-
-use crate::errors::StrategyError;
 use clap::ValueEnum;
 
 /// The option's type
@@ -12,7 +10,7 @@ pub enum OptionKind {
 
 /// The Position of the option
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ValueEnum)]
-pub enum Position {
+pub enum Side {
     Long,
     Short,
 }

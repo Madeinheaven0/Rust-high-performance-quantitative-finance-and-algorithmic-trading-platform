@@ -1,13 +1,13 @@
+pub mod errors;
 #[path = "payoffs/mod.rs"]
 pub mod payoffs;
-pub mod errors;
 
-use std::time::Instant;
-use crate::payoffs::domain_types::{OptionKind, Position, Premium, Spot, Strike};
-use errors::StrategyError;
+use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
 use crate::payoffs::leg::OptionLeg;
-use crate::payoffs::{domain_types, leg, range_bound, spread, volatility_strategies};
-use rand::{rng, Rng, RngExt};
+use crate::payoffs::leg;
+use errors::StrategyError;
+use rand::{RngExt};
+use std::time::Instant;
 use tracing;
 use tracing_subscriber;
 
@@ -21,8 +21,9 @@ fn main() {
 
 fn created_table_basic_options() -> Result<[OptionLeg; N], StrategyError> {
     let mut options: Vec<OptionLeg> = Vec::with_capacity(N);
+
     for _ in 0..N {
-        let basic = OptionLeg::build(OptionKind::Call, Position::Long, Strike(100.), Premium(7.))?;
+        let basic = OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(7.))?;
         options.push(basic);
     }
 
@@ -34,7 +35,7 @@ fn created_table_basic_options() -> Result<[OptionLeg; N], StrategyError> {
 fn created_vector_basic_options() -> Result<Vec<OptionLeg>, StrategyError> {
     let mut options: Vec<leg::OptionLeg> = Vec::with_capacity(N);
     for _ in 0..N {
-        let basic = OptionLeg::build(OptionKind::Call, Position::Long, Strike(100.), Premium(7.))?;
+        let basic = OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(7.))?;
         options.push(basic);
     }
 
@@ -44,11 +45,16 @@ fn created_vector_basic_options() -> Result<Vec<OptionLeg>, StrategyError> {
 fn bench_array_option_payoff(options: [OptionLeg; N]) -> Result<(), StrategyError> {
     tracing::info!("Start the array option bench");
     let rng = rand::rng();
-    let spots: [f64; N] = rng.random_iter().take(N).collect::<Vec<f64>>().try_into().unwrap();
+    let spots: [f64; N] = rng
+        .random_iter()
+        .take(N)
+        .collect::<Vec<f64>>()
+        .try_into()
+        .unwrap();
 
     let begin = Instant::now();
 
-    let payoffs = options
+    let _payoffs = options
         .iter()
         .zip(spots.iter())
         .map(|(option, s)| {
@@ -65,12 +71,12 @@ fn bench_array_option_payoff(options: [OptionLeg; N]) -> Result<(), StrategyErro
 
 fn bench_vector_option_payoff(options: Vec<OptionLeg>) -> Result<(), StrategyError> {
     tracing::info!("Start the vector option bench");
-    let mut rng = rand::rng();
+    let rng = rand::rng();
     let spots: Vec<f64> = rng.random_iter().take(N).collect::<Vec<f64>>();
 
     let begin = Instant::now();
 
-    let payoffs = options
+    let _payoffs = options
         .iter()
         .zip(spots.iter())
         .map(|(option, s)| {

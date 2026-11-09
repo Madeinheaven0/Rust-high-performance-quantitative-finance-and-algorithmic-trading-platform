@@ -18,4 +18,8 @@ pub enum BookError {
     AsksEmpty,
     #[error("The Bids is empty")]
     BidsEmpty,
+    #[error("The Order is not fount")]
+    OrderNotFound,
+    #[error("The new price is the same that the old price")]
+    PriceSame,
 }

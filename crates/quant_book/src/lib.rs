@@ -1,6 +1,6 @@
-pub mod order_book;
 pub mod domain;
 pub mod errors;
+pub mod order_book;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right

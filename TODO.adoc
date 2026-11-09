@@ -1,0 +1,2 @@
+* [x] Terminer le CLI de quant core;
+* [ ] Construire le système connectant book et exec;
