@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, VecDeque};
-
 use crate::errors::BookError;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -76,28 +76,29 @@ impl OrderBuilder {
 
     pub fn build(self) -> Result<Order, BookError> {
         let mut order: Order = Order::default();
-
+        
         if let Some(id) = self.id {
             order.id = Id(id);
-        } else {
+        }
+        else {
             return Err(BookError::IDMissing);
         }
-
         if let Some(price) = self.price {
             order.price = Price(price);
-        } else {
+        } 
+        else {
             return Err(BookError::PriceMissing);
         }
-
         if let Some(quantity) = self.quantity {
             order.quantity = Quantity(quantity);
-        } else {
+        } 
+        else {
             return Err(BookError::QuantityMissing);
         }
-
         if let Some(side) = self.side {
             order.side = side
-        } else {
+        } 
+        else {
             return Err(BookError::SideMissing);
         }
 
@@ -153,19 +154,15 @@ impl TradeBuilder {
         if self.buyer_id.is_none() {
             return Err(BookError::IDMissing);
         }
-
         if self.seller_id.is_none() {
             return Err(BookError::SellerIDMissing);
         }
-
         if self.buyer_id.is_none() {
             return Err(BookError::BuyerIDMissing);
         }
-
         if self.price.is_none() {
             return Err(BookError::PriceMissing);
         }
-
         if self.quantity.is_none() {
             return Err(BookError::QuantityMissing);
         }

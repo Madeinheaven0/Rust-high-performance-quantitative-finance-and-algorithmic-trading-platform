@@ -10,3 +10,5 @@ anyhow = {workspace = true}
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 quant_core = {path = "../quant_core"}
+quant_exec = {path = "../quant_exec"}
+quant_book = {path = "../quant_book"}

@@ -1,0 +1,64 @@
+= *Finance Quantitative and Low-Latency Algorithmic Trading Platform*
+
+https://img.shields.io/badge/license-MIT-blue.svg[LICENSE]
+
+https://img.shields.io/badge/build-passing-brightgreen.svg[Build Status]
+
+
+
+Is a system, applicative and analytic complete project made to replace traditional python architecture.
+
+
+== *Summary*
+
+* About the project
+* Architectures and Technologies
+* Requires
+* Utilization
+* Roadmap
+* License
+
+
+== 💡 *About the Project*
+
+I create this platform because I want to centralize all the quantitative process in one point. Usually the tools used for trading is dispatched between many software programs. With this platform you have simultaneously event-driving trading system, pricing & risk engine, quant analytics lab, monte carlo simulation and a full-stack quant platform.
+
+== Functionalities
+
+* *An event & executioner trading  simulates and handle the market in real time:*
+** Un limit order book with
+** Reception pf the price flow n real time and an execution order
+* *A risk & portfolio valuation calculation:*
+** Price variate of financial instrument (stocks, vanilla and exotic options like american option)
+** Compute in real time greeks matrices, Value at risk, le Stress testing, and the adjustment of the counterpart
+* *A mathematical & econometric tool:*
+** Matricial analysis , stochastic differential equations solver, volatility deviation modelization, and constrained optimization modules
+* *Massif Simulation Engine:*
+** exploit low-level functionalities of the processor (matricial vectorization SIMD) and the parallel multi-threading to simulate millions of trajectories per second without memory blocage
+* *Data & Interface Infrastructure:*
+** Binary hig speed archive engine, sequential time-series treatment, and a real time UI / dashboard to visualize the limit order books and the risk metrics.
+
+== 🛠️ *Architecture and Technologies*
+
+=== Main Technologies
+
+|===
+|Category| Technologies
+|*Main language*| Rust
+|*Framework Backend*| Axum
+|*Database*| QuestDB
+|*Infrastructure*| Docker Compose / Github actions
+|===
+
+=== Structure of the project
+
+
+
+== 📋 *Requires*
+
+Be ensured to have installed all this requirements:
+
+* `git` (v2.38+)
+* `docker` and `docker-compose`
+* `cargo`
+
