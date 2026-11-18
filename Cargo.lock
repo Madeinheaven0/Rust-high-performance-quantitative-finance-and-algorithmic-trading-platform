@@ -485,7 +485,11 @@ dependencies = [
 name = "quant_book"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "clap",
  "proptest",
+ "quant_core",
+ "quant_exec",
  "rayon",
  "rstest",
  "thiserror",

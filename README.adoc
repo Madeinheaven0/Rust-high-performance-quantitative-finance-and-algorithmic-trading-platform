@@ -1,64 +1,102 @@
-= *Finance Quantitative and Low-Latency Algorithmic Trading Platform*
+= *Quantitative Finance & Low-Latency Algorithmic Trading Platform*
 
 https://img.shields.io/badge/license-MIT-blue.svg[LICENSE]
-
 https://img.shields.io/badge/build-passing-brightgreen.svg[Build Status]
+https://img.shields.io/badge/language-Rust-orange.svg[Language]
 
-
-
-Is a system, applicative and analytic complete project made to replace traditional python architecture.
-
+A unified, end-to-end, low-latency quantitative finance and algorithmic trading system built in Rust to replace fragmented, high-latency Python architectures.
 
 == *Summary*
 
-* About the project
-* Architectures and Technologies
-* Requires
-* Utilization
-* Roadmap
-* License
-
+* <<_about_the_project, About the Project>>
+* <<_functionalities, Functionalities>>
+* <<_architecture_and_technologies, Architecture and Technologies>>
+* <<_prerequisites, Prerequisites>>
+* <<_usage, Usage>>
+* <<_roadmap, Roadmap>>
+* <<_author_contact, Author & Contact>>
+* <<_license, License>>
 
 == 💡 *About the Project*
 
-I create this platform because I want to centralize all the quantitative process in one point. Usually the tools used for trading is dispatched between many software programs. With this platform you have simultaneously event-driving trading system, pricing & risk engine, quant analytics lab, monte carlo simulation and a full-stack quant platform.
+In traditional quantitative finance workflows, operations are heavily fragmented across disconnected tools: Python for research and prototyping, C++ for execution engines, external vendors for risk analytics, and separate databases for market data. This fragmentation introduces serialization overhead, network latency, code duplication, and operational bottlenecks between research and live execution.
 
-== Functionalities
+This platform solves that problem by **centralizing the entire quantitative lifecycle into a single, cohesive, high-performance Rust ecosystem**. From real-time market data ingestion and order book management to stochastic modeling, massive Monte Carlo risk simulations, and live dashboard visualization, everything runs natively within one unified architecture—eliminating the "two-language problem" while guaranteeing memory safety and deterministic sub-microsecond latency.
 
-* *An event & executioner trading  simulates and handle the market in real time:*
-** Un limit order book with
-** Reception pf the price flow n real time and an execution order
-* *A risk & portfolio valuation calculation:*
-** Price variate of financial instrument (stocks, vanilla and exotic options like american option)
-** Compute in real time greeks matrices, Value at risk, le Stress testing, and the adjustment of the counterpart
-* *A mathematical & econometric tool:*
-** Matricial analysis , stochastic differential equations solver, volatility deviation modelization, and constrained optimization modules
-* *Massif Simulation Engine:*
-** exploit low-level functionalities of the processor (matricial vectorization SIMD) and the parallel multi-threading to simulate millions of trajectories per second without memory blocage
-* *Data & Interface Infrastructure:*
-** Binary hig speed archive engine, sequential time-series treatment, and a real time UI / dashboard to visualize the limit order books and the risk metrics.
+== ⚙️ *Functionalities*
+
+* *Event-Driven Trading & Execution Engine:*
+** High-speed Limit Order Book (LOB) with fixed-point precision arithmetic.
+** Real-time market data feed ingestion and low-latency order execution (TWAP/VWAP).
+* *Real-Time Risk & Portfolio Valuation:*
+** Pricing engine supporting equities, vanilla options, and path-dependent exotic derivatives (e.g., American options via Longstaff-Schwartz).
+** Real-time computation of Greeks matrices, Value at Risk (VaR), stress testing scenarios, and Credit Valuation Adjustments (XVA).
+* *Mathematical & Econometric Toolkit:*
+** Matrix algebra, Stochastic Differential Equation (SDE) solvers, volatility surface and GARCH/EGARCH modeling, and constrained convex optimization modules.
+* *Massive Parallel Simulation Engine:*
+** Leverages hardware-level SIMD vectorization and lock-free multi-threading to simulate millions of Monte Carlo trajectories per second without memory contention.
+* *Data & Visualization Infrastructure:*
+** Zero-copy binary archiving (Apache Arrow / Parquet) paired with sequential time-series storage (QuestDB), exposed through a real-time web and native GUI dashboard.
 
 == 🛠️ *Architecture and Technologies*
 
 === Main Technologies
 
 |===
-|Category| Technologies
-|*Main language*| Rust
-|*Framework Backend*| Axum
-|*Database*| QuestDB
-|*Infrastructure*| Docker Compose / Github actions
+| Category | Technologies
+
+| *Core Language* | Rust
+| *Backend & API* | Axum
+| *GUI / Dashboard* | Egui / Web UI
+| *Time-Series Database* | QuestDB / Apache Arrow / Parquet
+| *Infrastructure* | Docker Compose / GitHub Actions
 |===
 
-=== Structure of the project
+=== Structure of the Project
 
+[source,text]
+----
+quant_system/
+├── Cargo.toml
+└── crates/
+    ├── quant_core/
+    ├── quant_orderbook/
+    ├── quant_math/
+    ├── quant_sim/
+    ├── quant_analytics/
+    ├── quant_risk/
+    ├── quant_feed/
+    ├── quant_storage/
+    ├── quant_exec/
+    └── quant_ui/
+----
 
+== 📋 *Prerequisites*
 
-== 📋 *Requires*
-
-Be ensured to have installed all this requirements:
+Ensure the following tools are installed on your system before building the project:
 
 * `git` (v2.38+)
 * `docker` and `docker-compose`
-* `cargo`
+* `cargo` & Rust toolchain (stable/nightly)
 
+== 🚀 *Usage*
+
+_Coming soon: build instructions, Docker Compose deployment commands, and configuration examples._
+
+== 🗺️ *Roadmap*
+
+* [x] Core types, fixed-point Limit Order Book, and SIMD primitives
+* [ ] Stochastic solvers, GARCH models, and parallel Monte Carlo engine
+* [ ] Live WebSocket market feed connectors and order routing
+* [ ] Real-time Axum + Egui risk and order book visualization dashboard
+
+== 👤 *Author & Contact*
+
+* *Epée Epée Landry* — Quantitative Software Developer & Data Scientist
+* *GitHub:* https://github.com/your-username[github.com/your-username]
+* *LinkedIn:* https://linkedin.com/in/your-profile[linkedin.com/in/your-profile]
+* *Email:* mailto:your.email@example.com[your.email@example.com]
+
+== 📄 *License*
+
+Distributed under the MIT License. See `LICENSE` for more information.

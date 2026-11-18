@@ -11,6 +11,7 @@ pub trait VolatilityStrategy {
     fn pnl(&self, spot: Spot) -> Result<f64, StrategyError>;
 }
 
+#[derive(Debug, Clone)]
 /// The structure of a straddle' s strategy
 pub struct Straddle {
     pub legs: [OptionLeg; 2],

@@ -1,7 +1,7 @@
 //! # The engine of the platform
 use rayon::prelude::*;
 use tracing::instrument;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 use crate::errors::EngineError;
 use quant_core::errors;
@@ -27,15 +27,6 @@ impl OptionEngine {
             return Err(EngineError::EmptySpots);
         }
 
-        if legs.len() != spots.len() {
-            error!("The list of legs and spots are not equal");
-            debug!("Legs len: {}, spots len: {}", legs.len(), spots.len());
-            return Err(EngineError::MismatchedLengths {
-                strategies_len: legs.len(),
-                spots_len: spots.len(),
-            });
-        }
-
         info!("The OptionEngine is created");
         Ok(Self {
             legs: legs.to_vec(),
@@ -43,22 +34,32 @@ impl OptionEngine {
         })
     }
 
+    /// Computes the payoffs for all strategies across all spot prices in parallel (Cartesian product).
     pub fn payoffs(&self) -> Result<Vec<f64>, errors::StrategyError> {
-        Ok(self
-            .legs
+        self.legs
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(leg, spot)| leg.payoff(spot.to_owned()).unwrap())
-            .collect())
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.payoff(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
 
+    /// Computes the PnLs for all strategies across all spot prices in parallel (Cartesian product).
     pub fn pnls(&self) -> Result<Vec<f64>, errors::StrategyError> {
-        Ok(self
-            .legs
+        self.legs
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(leg, spot)| leg.pnl(spot.to_owned()).unwrap())
-            .collect())
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.pnl(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
 }
 
@@ -67,8 +68,8 @@ pub struct SpreadEngine<T: spread::SpreadStrategy> {
     pub spots: Vec<domain_types::Spot>,
 }
 
-impl<T: spread::SpreadStrategy + Sync + Send> SpreadEngine<T> {
-    pub fn build(spreads: Vec<T>, spots: Vec<domain_types::Spot>) -> Result<Self, EngineError> {
+impl<T: spread::SpreadStrategy + Sync + Send + Clone> SpreadEngine<T> {
+    pub fn build(spreads: &[T], spots: &[domain_types::Spot]) -> Result<Self, EngineError> {
         if spreads.is_empty() {
             error!("The list of spreads is empty");
             return Err(EngineError::EmptyElements);
@@ -78,36 +79,38 @@ impl<T: spread::SpreadStrategy + Sync + Send> SpreadEngine<T> {
             return Err(EngineError::EmptySpots);
         }
 
-        if spreads.len() != spots.len() {
-            error!("The list of spreads and spots are not equal");
-            debug!(
-                "Spread's len: {}, spots len: {}",
-                spreads.len(),
-                spots.len()
-            );
-            return Err(EngineError::MismatchedLengths {
-                strategies_len: spreads.len(),
-                spots_len: spots.len(),
-            });
-        }
-
-        Ok(Self { spreads, spots })
+        Ok(Self {
+            spreads: spreads.to_vec(),
+            spots: spots.to_vec(),
+        })
     }
 
+    /// Computes the payoffs for all strategies across all spot prices in parallel (Cartesian product).
     pub fn payoffs(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.spreads
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(spread, spot)| spread.payoff(spot.to_owned()))
-            .collect()
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.payoff(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
+
 
     pub fn pnls(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.spreads
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(spread, spot)| spread.pnl(spot.to_owned()))
-            .collect()
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.pnl(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
 }
 
@@ -116,8 +119,8 @@ pub struct VolatilityEngine<T: volatility_strategies::VolatilityStrategy> {
     pub spots: Vec<domain_types::Spot>,
 }
 
-impl<T: volatility_strategies::VolatilityStrategy + Sync + Send> VolatilityEngine<T> {
-    pub fn build(legs: Vec<T>, spots: Vec<domain_types::Spot>) -> Result<Self, EngineError> {
+impl<T: volatility_strategies::VolatilityStrategy + Sync + Send + Clone> VolatilityEngine<T> {
+    pub fn build(legs: &[T], spots: &[domain_types::Spot]) -> Result<Self, EngineError> {
         if legs.is_empty() {
             error!("The list of legs is empty");
             return Err(EngineError::EmptyElements);
@@ -127,32 +130,36 @@ impl<T: volatility_strategies::VolatilityStrategy + Sync + Send> VolatilityEngin
             return Err(EngineError::EmptySpots);
         }
 
-        if legs.len() != spots.len() {
-            error!("The list of legs and spots are not equal");
-            debug!("Legs len: {}, spots len: {}", legs.len(), spots.len());
-            return Err(EngineError::MismatchedLengths {
-                strategies_len: legs.len(),
-                spots_len: spots.len(),
-            });
-        }
-
-        Ok(Self { legs, spots })
+        Ok(Self {
+            legs: legs.to_vec(),
+            spots: spots.to_vec(),
+        })
     }
 
     pub fn payoffs(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.legs
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(leg, spot)| leg.payoff(spot.to_owned()))
-            .collect()
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.payoff(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
 
     pub fn pnls(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.legs
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(leg, spot)| leg.pnl(spot.to_owned()))
-            .collect()
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.pnl(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
 }
 
@@ -161,8 +168,8 @@ pub struct RangeEngine<T: range_bound::RangeStrategy> {
     pub spots: Vec<domain_types::Spot>,
 }
 
-impl<T: range_bound::RangeStrategy + Sync + Send> RangeEngine<T> {
-    pub fn build(legs: Vec<T>, spots: Vec<domain_types::Spot>) -> Result<Self, EngineError> {
+impl<T: range_bound::RangeStrategy + Sync + Send + Clone> RangeEngine<T> {
+    pub fn build(legs: &[T], spots: &[domain_types::Spot]) -> Result<Self, EngineError> {
         if legs.is_empty() {
             error!("The list of legs is empty");
             return Err(EngineError::EmptyElements);
@@ -172,32 +179,37 @@ impl<T: range_bound::RangeStrategy + Sync + Send> RangeEngine<T> {
             return Err(EngineError::EmptySpots);
         }
 
-        if legs.len() != spots.len() {
-            error!("The list of legs and spots are not equal");
-            debug!("Legs len: {}, spots len: {}", legs.len(), spots.len());
-            return Err(EngineError::MismatchedLengths {
-                strategies_len: legs.len(),
-                spots_len: spots.len(),
-            });
-        }
-
-        Ok(Self { legs, spots })
+        Ok(Self {
+            legs: legs.to_vec(),
+            spots: spots.to_vec(),
+        })
     }
 
     pub fn payoffs(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.legs
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(leg, spot)| leg.payoff(spot.to_owned()))
-            .collect()
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.payoff(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
+
 
     pub fn pnls(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.legs
             .par_iter()
-            .zip(self.spots.par_iter())
-            .map(|(leg, spot)| leg.pnl(spot.to_owned()))
-            .collect()
+            .map(|leg| {
+                self.spots
+                    .iter()
+                    .map(|spot| leg.pnl(spot.to_owned()))
+                    .collect::<Result<Vec<f64>, errors::StrategyError>>()
+            })
+            .collect::<Result<Vec<Vec<f64>>, errors::StrategyError>>()
+            .map(|matrix| matrix.into_iter().flatten().collect())
     }
 }
 
@@ -235,29 +247,29 @@ mod tests {
     #[test]
     fn test_build_option_engine_invalid_lengths() {
         let leg1 = leg::OptionLeg::build(
-            domain_types::OptionKind::Call,
-            domain_types::Side::Long,
-            domain_types::Strike(100.),
-            domain_types::Premium(3.),
+            OptionKind::Call,
+            Side::Long,
+            Strike(100.),
+            Premium(3.),
         )
             .unwrap();
         let leg2 = leg::OptionLeg::build(
-            domain_types::OptionKind::Call,
-            domain_types::Side::Long,
-            domain_types::Strike(100.),
-            domain_types::Premium(3.),
+            OptionKind::Call,
+            Side::Long,
+            Strike(100.),
+            Premium(3.),
         )
             .unwrap();
         let leg3 = leg::OptionLeg::build(
-            domain_types::OptionKind::Call,
-            domain_types::Side::Long,
-            domain_types::Strike(107.),
-            domain_types::Premium(3.),
+            OptionKind::Call,
+            Side::Long,
+            Strike(107.),
+            Premium(3.),
         )
             .unwrap();
 
-        let spot1 = domain_types::Spot(108.);
-        let spot2 = domain_types::Spot(90.);
+        let spot1 = Spot(108.);
+        let spot2 = Spot(90.);
 
         let spreads = vec![leg1, leg2, leg3];
         let spots = vec![spot1, spot2];
@@ -270,22 +282,22 @@ mod tests {
     #[test]
     fn test_compute_payoffs() {
         let leg1 = leg::OptionLeg::build(
-            domain_types::OptionKind::Call,
-            domain_types::Side::Long,
-            domain_types::Strike(100.),
-            domain_types::Premium(3.),
+            OptionKind::Call,
+            Side::Long,
+            Strike(100.),
+            Premium(3.),
         )
             .unwrap();
         let leg2 = leg::OptionLeg::build(
-            domain_types::OptionKind::Call,
-            domain_types::Side::Long,
-            domain_types::Strike(100.),
-            domain_types::Premium(3.),
+            OptionKind::Call,
+            Side::Long,
+            Strike(100.),
+            Premium(3.),
         )
             .unwrap();
 
-        let spot1 = domain_types::Spot(108.);
-        let spot2 = domain_types::Spot(90.);
+        let spot1 = Spot(108.);
+        let spot2 = Spot(90.);
 
         let spreads = vec![leg1, leg2];
         let spots = vec![spot1, spot2];
@@ -300,22 +312,22 @@ mod tests {
     #[test]
     fn test_compute_pnls() {
         let leg1 = leg::OptionLeg::build(
-            domain_types::OptionKind::Call,
-            domain_types::Side::Long,
-            domain_types::Strike(100.),
-            domain_types::Premium(3.),
+            OptionKind::Call,
+            Side::Long,
+            Strike(100.),
+            Premium(3.),
         )
             .unwrap();
         let leg2 = leg::OptionLeg::build(
-            domain_types::OptionKind::Call,
-            domain_types::Side::Long,
-            domain_types::Strike(100.),
-            domain_types::Premium(3.),
+            OptionKind::Call,
+            Side::Long,
+            Strike(100.),
+            Premium(3.),
         )
             .unwrap();
 
-        let spot1 = domain_types::Spot(108.);
-        let spot2 = domain_types::Spot(90.);
+        let spot1 = Spot(108.);
+        let spot2 = Spot(90.);
 
         let spreads = vec![leg1, leg2];
         let spots = vec![spot1, spot2];
@@ -335,8 +347,7 @@ mod tests {
         let spots = vec![spot1];
         let empty_spreads: Vec<spread::BullCallSpread> = vec![];
 
-        // Utilisation de .is_err() pour éviter d'exiger Debug sur l'Engine
-        assert!(SpreadEngine::build(empty_spreads, spots).is_err());
+        assert!(SpreadEngine::build(&empty_spreads, &spots).is_err());
     }
 
     #[test]
@@ -344,7 +355,7 @@ mod tests {
         let empty_spots: Vec<Spot> = vec![];
         let empty_legs: Vec<volatility_strategies::Straddle> = vec![];
 
-        assert!(VolatilityEngine::build(empty_legs, empty_spots).is_err());
+        assert!(VolatilityEngine::build(&empty_legs, &empty_spots).is_err());
     }
 
     #[test]
@@ -354,6 +365,6 @@ mod tests {
         let spots = vec![spot1, spot2];
 
         let legs: Vec<range_bound::IronCondor> = vec![];
-        assert!(RangeEngine::build(legs, spots).is_err());
+        assert!(RangeEngine::build(&legs, &spots).is_err());
     }
 }

@@ -9,6 +9,7 @@ pub trait RangeStrategy {
     fn pnl(&self, spot: Spot) -> Result<f64, StrategyError>;
 }
 
+#[derive(Debug, Clone)]
 /// # The Basic Structure of a Iron Strategy
 pub struct Iron {
     pub legs: [OptionLeg; 4],
@@ -32,6 +33,7 @@ impl RangeStrategy for Iron {
     }
 }
 
+#[derive(Debug, Clone)]
 /// ## The Iron Condor Structure
 pub struct IronCondor(Iron);
 

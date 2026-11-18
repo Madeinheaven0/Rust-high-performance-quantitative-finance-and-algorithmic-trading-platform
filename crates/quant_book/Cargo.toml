@@ -5,7 +5,11 @@ edition = "2024"
 
 [dependencies]
 thiserror = {workspace = true}
+anyhow = {workspace = true}
 rayon = {workspace = true}
 tracing = {workspace = true}
 rstest = {workspace = true}
 proptest = {workspace = true}
+clap = {workspace = true}
+quant_core = {path = "../quant_core"}
+quant_exec = {path = "../quant_exec"}
