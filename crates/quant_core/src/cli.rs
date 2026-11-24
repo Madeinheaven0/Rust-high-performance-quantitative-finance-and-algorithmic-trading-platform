@@ -1,5 +1,5 @@
+use crate::payoffs::types::*;
 use clap::{Parser, Subcommand};
-use crate::payoffs::domain_types::*;
 
 #[derive(Parser)]
 #[command(
@@ -17,9 +17,9 @@ pub struct Args {
 pub enum Strategy {
     /// A simple option Call or Put
     Classic {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
-        #[arg(long, short='k', value_enum)]
+        #[arg(long, short = 'k', value_enum)]
         /// The type of the option (Call or Put)
         kind: OptionKind,
         #[arg(value_enum)]
@@ -27,13 +27,13 @@ pub enum Strategy {
         side: Side,
         /// The price of the spot
         strike: f64,
-        #[arg(long, short='p')]
+        #[arg(long, short = 'p')]
         premium: f64,
     },
-    
+
     /// The BullCallSpread strategy
     BullCallSpread {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         /// Strike of the cheaper Call
         strike_up: f64,
@@ -45,24 +45,24 @@ pub enum Strategy {
         premium_down: f64,
         /// The position of the customer
         #[arg(value_enum)]
-        side: Side
+        side: Side,
     },
-    
+
     /// The BullPutSpread Strategy
     BullPutSpread {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         strike_up: f64,
         strike_down: f64,
         premium_up: f64,
         premium_down: f64,
         #[arg(value_enum)]
-        side: Side
+        side: Side,
     },
-    
+
     /// The BearCAllSpread Strategy
     BearCallSpread {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         /// The strike of expensive Put
         strike_up: f64,
@@ -73,49 +73,49 @@ pub enum Strategy {
         /// The premium of the cheaper Put
         premium_down: f64,
         #[arg(value_enum)]
-        side: Side
+        side: Side,
     },
-    
+
     /// The BearPutSpread Strategy
     BearPutSpread {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         strike_up: f64,
         strike_down: f64,
         premium_up: f64,
         premium_down: f64,
         #[arg(value_enum)]
-        side: Side
+        side: Side,
     },
-    
+
     /// The Straddle Strategy
     Straddle {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         strike: f64,
-        #[arg(long, short='c')]
+        #[arg(long, short = 'c')]
         call_premium: f64,
-        #[arg(long, short='p')]
+        #[arg(long, short = 'p')]
         put_premium: f64,
         #[arg(value_enum)]
-        side: Side
+        side: Side,
     },
-    
+
     /// The Strangle Strategy
     Strangle {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         call_strike: f64,
         call_premium: f64,
         put_strike: f64,
         put_premium: f64,
         #[arg(value_enum)]
-        side: Side
+        side: Side,
     },
-    
+
     /// IronCondor Strategy
     IronCondor {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         long_put_strike: f64,
         long_put_premium: f64,
@@ -126,10 +126,10 @@ pub enum Strategy {
         long_call_strike: f64,
         long_call_premium: f64,
     },
-    
+
     /// IronButterfly Strategy
     IronButterfly {
-        #[arg(long, short='s')]
+        #[arg(long, short = 's')]
         spot: f64,
         long_put_strike: f64,
         long_put_premium: f64,
@@ -138,5 +138,5 @@ pub enum Strategy {
         short_call_premium: f64,
         long_call_strike: f64,
         long_call_premium: f64,
-    }
+    },
 }

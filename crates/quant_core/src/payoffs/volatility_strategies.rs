@@ -1,8 +1,8 @@
 //! # Thd module for the option's strategies when the market is on range
 
 use crate::errors::StrategyError;
-use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
 use crate::payoffs::leg::OptionLeg;
+use crate::payoffs::types::{OptionKind, Premium, Side, Spot, Strike};
 
 /// The trait implemented by the range strategies
 pub trait VolatilityStrategy {

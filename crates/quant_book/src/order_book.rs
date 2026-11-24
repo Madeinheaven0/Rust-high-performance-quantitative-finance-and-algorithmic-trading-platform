@@ -2,10 +2,8 @@
 
 use std::cmp::Reverse;
 
-use crate::domain::{Asks, Bids, Index, Order, Side, Trade, TradeBuilder};
 use crate::errors::BookError;
-
-use tracing::{debug, error, info};
+use crate::types::{Asks, Bids, Index, Order, Side, Trade, TradeBuilder};
 
 /// ## The structure of the Limit Order Book
 pub struct LimitOrderBook {
@@ -104,7 +102,7 @@ impl LimitOrderBook {
                 }
 
                 Ok(trades)
-            },
+            }
             Side::Sell => {
                 let mut trades: Vec<Trade> = vec![];
 
@@ -140,8 +138,7 @@ impl LimitOrderBook {
                             trades.push(trade);
                             order.quantity.0 = 0;
                             break;
-                        } 
-                        else if bid.quantity.0 > order.quantity.0 {
+                        } else if bid.quantity.0 > order.quantity.0 {
                             let matched_qty = order.quantity.0;
                             let bid_id = bid.id.0;
                             bid.quantity.0 -= matched_qty;
@@ -156,8 +153,7 @@ impl LimitOrderBook {
                             trades.push(trade);
                             order.quantity.0 = 0;
                             break;
-                        } 
-                        else {
+                        } else {
                             let q = bid.quantity.0;
                             let bid_id = bid.id.0;
                             bids_queue.pop_front();
@@ -287,8 +283,7 @@ impl LimitOrderBook {
                         // Increase in quantity -> Loss of priority (re-injection occurs)
                         needs_reinsertion = true;
                         bid.quantity.0 = q;
-                    } 
-                    else if q < bid.quantity.0 {
+                    } else if q < bid.quantity.0 {
                         // Decrease in quantity -> Stays in the same spot! We simply make the adjustment right where it is.
                         bid.quantity.0 = q;
                     }
@@ -335,8 +330,7 @@ impl LimitOrderBook {
                     if q > ask.quantity.0 {
                         needs_reinsertion = true;
                         ask.quantity.0 = q;
-                    } 
-                    else if q < ask.quantity.0 {
+                    } else if q < ask.quantity.0 {
                         ask.quantity.0 = q;
                     }
                 }
@@ -368,7 +362,7 @@ impl Default for LimitOrderBook {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::domain::{OrderBuilder, Side};
+    use crate::types::{OrderBuilder, Side};
     use proptest::prelude::*;
     use rstest::rstest;
 

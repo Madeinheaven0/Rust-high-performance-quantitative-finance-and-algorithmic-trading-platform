@@ -5,19 +5,16 @@ use tracing::{error, info};
 
 use crate::errors::EngineError;
 use quant_core::errors;
-use quant_core::payoffs::{domain_types, leg, range_bound, spread, volatility_strategies};
+use quant_core::payoffs::{leg, range_bound, spread, types, volatility_strategies};
 
 pub struct OptionEngine {
     pub legs: Vec<leg::OptionLeg>,
-    pub spots: Vec<domain_types::Spot>,
+    pub spots: Vec<types::Spot>,
 }
 
 impl OptionEngine {
     #[instrument(skip(legs, spots), fields(legs_len = legs.len(), spots_len = spots.len()))]
-    pub fn build(
-        legs: &[leg::OptionLeg],
-        spots: &[domain_types::Spot],
-    ) -> Result<Self, EngineError> {
+    pub fn build(legs: &[leg::OptionLeg], spots: &[types::Spot]) -> Result<Self, EngineError> {
         if legs.is_empty() {
             error!("The list of legs is empty");
             return Err(EngineError::EmptyElements);
@@ -65,11 +62,11 @@ impl OptionEngine {
 
 pub struct SpreadEngine<T: spread::SpreadStrategy> {
     pub spreads: Vec<T>,
-    pub spots: Vec<domain_types::Spot>,
+    pub spots: Vec<types::Spot>,
 }
 
 impl<T: spread::SpreadStrategy + Sync + Send + Clone> SpreadEngine<T> {
-    pub fn build(spreads: &[T], spots: &[domain_types::Spot]) -> Result<Self, EngineError> {
+    pub fn build(spreads: &[T], spots: &[types::Spot]) -> Result<Self, EngineError> {
         if spreads.is_empty() {
             error!("The list of spreads is empty");
             return Err(EngineError::EmptyElements);
@@ -99,7 +96,6 @@ impl<T: spread::SpreadStrategy + Sync + Send + Clone> SpreadEngine<T> {
             .map(|matrix| matrix.into_iter().flatten().collect())
     }
 
-
     pub fn pnls(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.spreads
             .par_iter()
@@ -116,11 +112,11 @@ impl<T: spread::SpreadStrategy + Sync + Send + Clone> SpreadEngine<T> {
 
 pub struct VolatilityEngine<T: volatility_strategies::VolatilityStrategy> {
     pub legs: Vec<T>,
-    pub spots: Vec<domain_types::Spot>,
+    pub spots: Vec<types::Spot>,
 }
 
 impl<T: volatility_strategies::VolatilityStrategy + Sync + Send + Clone> VolatilityEngine<T> {
-    pub fn build(legs: &[T], spots: &[domain_types::Spot]) -> Result<Self, EngineError> {
+    pub fn build(legs: &[T], spots: &[types::Spot]) -> Result<Self, EngineError> {
         if legs.is_empty() {
             error!("The list of legs is empty");
             return Err(EngineError::EmptyElements);
@@ -165,11 +161,11 @@ impl<T: volatility_strategies::VolatilityStrategy + Sync + Send + Clone> Volatil
 
 pub struct RangeEngine<T: range_bound::RangeStrategy> {
     pub legs: Vec<T>,
-    pub spots: Vec<domain_types::Spot>,
+    pub spots: Vec<types::Spot>,
 }
 
 impl<T: range_bound::RangeStrategy + Sync + Send + Clone> RangeEngine<T> {
-    pub fn build(legs: &[T], spots: &[domain_types::Spot]) -> Result<Self, EngineError> {
+    pub fn build(legs: &[T], spots: &[types::Spot]) -> Result<Self, EngineError> {
         if legs.is_empty() {
             error!("The list of legs is empty");
             return Err(EngineError::EmptyElements);
@@ -198,7 +194,6 @@ impl<T: range_bound::RangeStrategy + Sync + Send + Clone> RangeEngine<T> {
             .map(|matrix| matrix.into_iter().flatten().collect())
     }
 
-
     pub fn pnls(&self) -> Result<Vec<f64>, errors::StrategyError> {
         self.legs
             .par_iter()
@@ -216,8 +211,8 @@ impl<T: range_bound::RangeStrategy + Sync + Send + Clone> RangeEngine<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domain_types::{OptionKind, Premium, Side, Spot};
-    use quant_core::payoffs::domain_types::Strike;
+    use quant_core::payoffs::types::Strike;
+    use types::{OptionKind, Premium, Side, Spot};
 
     #[test]
     fn test_build_option_engine() {
@@ -226,7 +221,7 @@ mod tests {
         let leg2 =
             leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(3.)).unwrap();
 
-        let spot1 = domain_types::Spot(108.);
+        let spot1 = types::Spot(108.);
         let spot2 = Spot(90.);
 
         let spreads = vec![leg1, leg2];
@@ -246,27 +241,12 @@ mod tests {
 
     #[test]
     fn test_build_option_engine_invalid_lengths() {
-        let leg1 = leg::OptionLeg::build(
-            OptionKind::Call,
-            Side::Long,
-            Strike(100.),
-            Premium(3.),
-        )
-            .unwrap();
-        let leg2 = leg::OptionLeg::build(
-            OptionKind::Call,
-            Side::Long,
-            Strike(100.),
-            Premium(3.),
-        )
-            .unwrap();
-        let leg3 = leg::OptionLeg::build(
-            OptionKind::Call,
-            Side::Long,
-            Strike(107.),
-            Premium(3.),
-        )
-            .unwrap();
+        let leg1 =
+            leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(3.)).unwrap();
+        let leg2 =
+            leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(3.)).unwrap();
+        let leg3 =
+            leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(107.), Premium(3.)).unwrap();
 
         let spot1 = Spot(108.);
         let spot2 = Spot(90.);
@@ -281,20 +261,10 @@ mod tests {
 
     #[test]
     fn test_compute_payoffs() {
-        let leg1 = leg::OptionLeg::build(
-            OptionKind::Call,
-            Side::Long,
-            Strike(100.),
-            Premium(3.),
-        )
-            .unwrap();
-        let leg2 = leg::OptionLeg::build(
-            OptionKind::Call,
-            Side::Long,
-            Strike(100.),
-            Premium(3.),
-        )
-            .unwrap();
+        let leg1 =
+            leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(3.)).unwrap();
+        let leg2 =
+            leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(3.)).unwrap();
 
         let spot1 = Spot(108.);
         let spot2 = Spot(90.);
@@ -311,20 +281,10 @@ mod tests {
 
     #[test]
     fn test_compute_pnls() {
-        let leg1 = leg::OptionLeg::build(
-            OptionKind::Call,
-            Side::Long,
-            Strike(100.),
-            Premium(3.),
-        )
-            .unwrap();
-        let leg2 = leg::OptionLeg::build(
-            OptionKind::Call,
-            Side::Long,
-            Strike(100.),
-            Premium(3.),
-        )
-            .unwrap();
+        let leg1 =
+            leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(3.)).unwrap();
+        let leg2 =
+            leg::OptionLeg::build(OptionKind::Call, Side::Long, Strike(100.), Premium(3.)).unwrap();
 
         let spot1 = Spot(108.);
         let spot2 = Spot(90.);
@@ -343,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_spread_engine_empty_elements() {
-        let spot1 = domain_types::Spot(100.);
+        let spot1 = types::Spot(100.);
         let spots = vec![spot1];
         let empty_spreads: Vec<spread::BullCallSpread> = vec![];
 

@@ -1,9 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates","crates/quant_book",
+    "crates",
+    "crates/quant_lib",
+    "crates/quant_book",
     "crates/quant_core",
     "crates/quant_exec",
+    "crates/quant_math",
 ]
 
 [workspace.dependencies]
@@ -15,12 +18,13 @@ thiserror = "2.0.20"
 anyhow = "1.0.104"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "time"] }
-tracing-appender = "0.2.5"
 rayon = "1.12.0"
 serde = { version = "1.0.229", features = ["derive"] }
-ndarray = { version = "*", features = ["blas", "lapack"] }
-blas-src = { version = "*", features = ["openblas"] }
-lapack-src = { version = "*", features = ["openblas"] }
+ndarray = { version = "0.17.2", features = ["blas"] }
+ndarray-linalg = { version = "0.18.1", features = ["openblas"] }
+blas-src = { version = "0.14.0", features = ["openblas"] }
+lapack-src = { version = "0.13.0", features = ["openblas"] }
+openblas-src = { version = "0.10", features = ["cblas"] }
 
 [profile.release]
 debug = true

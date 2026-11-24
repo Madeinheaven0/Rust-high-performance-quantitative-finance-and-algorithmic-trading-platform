@@ -1,7 +1,7 @@
 //! # The fundamental constituent cell.
 
 use crate::errors::StrategyError;
-use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
+use crate::payoffs::types::{OptionKind, Premium, Side, Spot, Strike};
 
 /// Describe the structure of an option
 #[derive(Debug, PartialEq, Clone)]

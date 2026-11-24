@@ -1,8 +1,8 @@
 //! # Strategies used when we have a trend
 
 use crate::errors::StrategyError;
-use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
 use crate::payoffs::leg::OptionLeg;
+use crate::payoffs::types::{OptionKind, Premium, Side, Spot, Strike};
 
 /// ## The trait of the spread strategies
 pub trait SpreadStrategy {

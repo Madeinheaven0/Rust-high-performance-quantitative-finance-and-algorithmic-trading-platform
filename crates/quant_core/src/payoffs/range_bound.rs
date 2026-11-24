@@ -1,8 +1,8 @@
 //! # The Module for the strategies use when the market is in range
 
 use crate::errors::StrategyError;
-use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
 use crate::payoffs::leg::OptionLeg;
+use crate::payoffs::types::{OptionKind, Premium, Side, Spot, Strike};
 
 pub trait RangeStrategy {
     fn payoff(&self, spot: Spot) -> Result<f64, StrategyError>;

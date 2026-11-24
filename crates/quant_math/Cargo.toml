@@ -1,0 +1,19 @@
+[package]
+name = "quant_math"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ndarray = { workspace = true }
+ndarray-linalg = { workspace = true }
+blas-src = { workspace = true }
+lapack-src = { workspace = true }
+openblas-src = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+quant_core = { path = "../quant_core" }
+
+[dev-dependencies]
+rstest = { workspace = true }
+proptest = { workspace = true }

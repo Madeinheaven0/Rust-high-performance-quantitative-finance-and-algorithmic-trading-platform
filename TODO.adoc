@@ -1,11 +1,11 @@
 = *TASKS TODO*
 
-* [ ] Construct the system which connect quant_book, quant_exec:
-** [ ] Create a claim strategy (simple option or else);
-** [ ] create a limit order book;
-** [ ] add an order in the book;
-** [ ] use the vector for the engine;
-** [ ] look at the result;
+* [x] Construct the system which connect quant_book, quant_exec:
+** [x] Create a claim strategy (simple option or else);
+** [x] create a limit order book;
+** [x] add an order in the book;
+** [x] use the vector for the engine;
+** [x] look at the result;
 
 
 * Complete the first part pf the README

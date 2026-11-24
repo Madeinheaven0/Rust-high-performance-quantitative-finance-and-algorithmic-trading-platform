@@ -1,7 +1,7 @@
-use quant_book::domain::*;
 use quant_book::errors::BookError;
 use quant_book::functions::*;
-use quant_core::payoffs::domain_types::{OptionKind, Premium, Side as OptionSide, Spot, Strike};
+use quant_book::types::*;
+use quant_core::payoffs::types::{OptionKind, Premium, Side as OptionSide, Strike};
 use quant_core::payoffs::{
     leg::OptionLeg, range_bound::IronCondor, spread::BullCallSpread,
     volatility_strategies::Straddle,
@@ -56,25 +56,48 @@ fn main() -> Result<(), BookError> {
 
     // 3. Define heterogeneous strategy portfolios (independent of spot dimensions)
     let option_legs = vec![
-        OptionLeg::build(OptionKind::Call, OptionSide::Long, Strike(100.0), Premium(3.0)).unwrap(),
-        OptionLeg::build(OptionKind::Put, OptionSide::Short, Strike(95.0), Premium(2.5)).unwrap(),
+        OptionLeg::build(
+            OptionKind::Call,
+            OptionSide::Long,
+            Strike(100.0),
+            Premium(3.0),
+        )
+        .unwrap(),
+        OptionLeg::build(
+            OptionKind::Put,
+            OptionSide::Short,
+            Strike(95.0),
+            Premium(2.5),
+        )
+        .unwrap(),
     ];
 
     let spreads = vec![
-        BullCallSpread::build(Strike(102.0), Strike(99.0), Premium(0.5), Premium(2.0), OptionSide::Long).unwrap(),
+        BullCallSpread::build(
+            Strike(102.0),
+            Strike(99.0),
+            Premium(0.5),
+            Premium(2.0),
+            OptionSide::Long,
+        )
+        .unwrap(),
     ];
 
-    let straddles = vec![
-        Straddle::build(Strike(100.0), Premium(3.0), Premium(3.0), OptionSide::Long).unwrap(),
-    ];
+    let straddles =
+        vec![Straddle::build(Strike(100.0), Premium(3.0), Premium(3.0), OptionSide::Long).unwrap()];
 
     let condors = vec![
         IronCondor::build(
-            Strike(70.0), Premium(2.0),
-            Strike(80.0), Premium(3.0),
-            Strike(90.0), Premium(4.0),
-            Strike(100.0), Premium(5.0),
-        ).unwrap(),
+            Strike(70.0),
+            Premium(2.0),
+            Strike(80.0),
+            Premium(3.0),
+            Strike(90.0),
+            Premium(4.0),
+            Strike(100.0),
+            Premium(5.0),
+        )
+        .unwrap(),
     ];
 
     // 4. Process the order flow sequentially and evaluate engines at each step
@@ -82,8 +105,10 @@ fn main() -> Result<(), BookError> {
 
     for (step_name, order) in incoming_orders {
         info!(step = step_name, ?order, "Processing incoming order");
-        println!("\n[Event] Action: {} (Order ID: {:?}, Price: {}, Qty: {})",
-                 step_name, order.id, order.price.0, order.quantity.0);
+        println!(
+            "\n[Event] Action: {} (Order ID: {:?}, Price: {}, Qty: {})",
+            step_name, order.id, order.price.0, order.quantity.0
+        );
 
         // Execute matching on the shared book state
         let trades = match book.add_order(order) {
@@ -102,7 +127,11 @@ fn main() -> Result<(), BookError> {
 
         println!("  -> Trades executed: {} trade(s)", trades.len());
         for trade in &trades {
-            println!("     * Executed Price: ${:.2} | Qty: {}", trade.price.0 as f64 / 100.0, trade.quantity.0);
+            println!(
+                "     * Executed Price: ${:.2} | Qty: {}",
+                trade.price.0 as f64 / 100.0,
+                trade.quantity.0
+            );
         }
 
         // Convert generated trades into Spot prices for quant engines

@@ -2,11 +2,11 @@ pub mod errors;
 #[path = "payoffs/mod.rs"]
 pub mod payoffs;
 
-use crate::payoffs::domain_types::{OptionKind, Premium, Side, Spot, Strike};
-use crate::payoffs::leg::OptionLeg;
 use crate::payoffs::leg;
+use crate::payoffs::leg::OptionLeg;
+use crate::payoffs::types::{OptionKind, Premium, Side, Spot, Strike};
 use errors::StrategyError;
-use rand::{RngExt};
+use rand::RngExt;
 use std::time::Instant;
 use tracing;
 use tracing_subscriber;
